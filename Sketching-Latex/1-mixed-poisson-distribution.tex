@@ -1,0 +1,79 @@
+\section{Mixed Poisson Distribution}
+In its simplest form, a Poisson distribution models the probability of a number of events occurring in a fixed interval, given that we know the average rate ($\lambda$) of those events. Its probability mass function is:
+$$P(X=k) = \frac{\lambda^k e^{-\lambda}}{k!}$$
+
+A mixed Poisson distribution occurs when the rate parameter itself, $\lambda$, is not a fixed number, but rather a random variable. This introduces an additional level of uncertainty.
+
+\begin{itemize}
+    \item \textbf{Standard Poisson:} Imagine a set of very specific documents, such as only soccer game summaries. The word "goal" appears, on average, exactly 3 times per summary. The rate $\lambda=3$ is fixed.
+    \item \textbf{Mixed Poisson:} Now, imagine your dataset contains two types of documents: soccer game summaries (where the average rate of "goal" is $\lambda_{\text{soc}}=3$) and finance articles (where the word "goal" is less common, perhaps $\lambda_{\text{fin}}=0.5$). If you randomly pick a document without knowing its type, the rate $\lambda$ is now a random variable (it could be 3 or 0.5, with some probability). The distribution of the word count for "goal" in this random document is a "mixture" of the two Poisson distributions.
+\end{itemize}
+
+The mixed Poisson distribution takes the following form:
+
+$$ X \mid Z = z \sim \bigotimes_{i=1}^{d} \text{Poisson}((\mathbf{Az})_i)$$
+
+\begin{itemize}
+    \item $X$ is a vector of counts with $d$ dimensions: $X = [X_1, X_2, \dots, X_d]^T$.
+    \item $Z$ is a vector of $m$ latent (hidden) random variables that make up the "mixture".
+    \item $\mathbf{A}$ is a weight matrix with $d$ rows and $m$ columns. Its elements are non-negative. Each row $i$ of $\mathbf{A}$ defines how the latent factors in $z$ combine to form the rate for the count $X_i$.
+    \item $\mathbf{z}$ is a vector of $m$ non-negative latent factors. This is the specific value assumed by the random variable $Z$.
+    \item $(\mathbf{A}z)_i$ is the Poisson rate $\lambda$ for the $i$-th count $X_i$. It is calculated by multiplying the $i$-th row of the matrix $\mathbf{A}$ by the vector $z$. The complete vector of rates is $\lambda = \mathbf{A}z$.
+    \item $\bigotimes_{i=1}^{d} \text{Poisson}(\dots)$ represents the product of independent distributions. This means that, once we know $z$, the $d$ counts ($X_1, \dots, X_d$) are all statistically independent of each other. Each $X_i$ is drawn from its own Poisson distribution with its own rate $(\mathbf{A}z)_i$.
+\end{itemize}
+
+\subsection{Example}
+
+Let's model the count of $d=3$ words in documents, based on $m=2$ latent topics.
+\begin{itemize}
+    \item $X_1$: count of "calculus"
+    \item $X_2$: count of "football"
+    \item $X_3$: count of "investment"
+    \item $z_1$: exposure to Topic 1 ("Academic")
+    \item $z_2$: exposure to Topic 2 ("Sports \& Finance")
+    \item $z_3$: exposure to both topics
+\end{itemize}
+
+Let our weight matrix $\mathbf{A}$ be defined as:
+$$
+\mathbf{A} = \begin{pmatrix}
+10 & 1 \\
+2 & 8 \\
+1 & 9
+\end{pmatrix}
+$$
+Interpretation:
+\begin{itemize}
+    \item Row 1 ("calculus"): $\begin{bmatrix} 10 & 1 \end{bmatrix}$ - Strongly associated with Topic 1.
+    \item Row 2 ("football"): $\begin{bmatrix} 2 & 8 \end{bmatrix}$ - Strongly associated with Topic 2.
+    \item Row 3 ("investment"): $\begin{bmatrix} 1 & 9 \end{bmatrix}$ - Strongly associated with Topic 2.
+\end{itemize}
+
+Let's generate samples of $X$ for different documents (different $z$ vectors).
+
+\subsubsection*{Scenario 1: "Academic" Document}
+We assume a document with high exposure to Topic 1.
+$$z_1 = \begin{pmatrix} 5 \\ 0.1 \end{pmatrix}$$
+We calculate the rates $\lambda = \mathbf{A}z_1$:
+$$
+\lambda_1 = \begin{pmatrix} 10 & 1 \\ 2 & 8 \\ 1 & 9 \end{pmatrix} \begin{pmatrix} 5 \\ 0.1 \end{pmatrix} = \begin{pmatrix} 50.1 \\ 10.8 \\ 5.9 \end{pmatrix}
+$$
+The samples of $X$ (word counts) will come from $X_1 \sim \text{Poisson}(50.1)$, $X_2 \sim \text{Poisson}(10.8)$, and $X_3 \sim \text{Poisson}(5.9)$. The "calculus" counts are high, as expected.
+
+\subsubsection*{Scenario 2: "Sports \& Finance" Document}
+We assume a document with high exposure to Topic 2.
+$$z_2 = \begin{pmatrix} 0.5 \\ 10 \end{pmatrix}$$
+We calculate the rates $\lambda = \mathbf{A}z_2$:
+$$
+\lambda_2 = \begin{pmatrix} 10 & 1 \\ 2 & 8 \\ 1 & 9 \end{pmatrix} \begin{pmatrix} 0.5 \\ 10 \end{pmatrix} = \begin{pmatrix} 15 \\ 81 \\ 90.5 \end{pmatrix}
+$$
+The samples of $X$ will come from $X_1 \sim \text{Poisson}(15)$, $X_2 \sim \text{Poisson}(81)$, and $X_3 \sim \text{Poisson}(90.5)$. The "football" and "investment" counts are high.
+
+\subsubsection*{Scenario 3: Document with a Balanced Mixture}
+We assume a document with moderate exposure to both topics.
+$$z_3 = \begin{pmatrix} 3 \\ 4 \end{pmatrix}$$
+We calculate the rates $\lambda = \mathbf{A}z_3$:
+$$
+\lambda_3 = \begin{pmatrix} 10 & 1 \\ 2 & 8 \\ 1 & 9 \end{pmatrix} \begin{pmatrix} 3 \\ 4 \end{pmatrix} = \begin{pmatrix} 34 \\ 38 \\ 39 \end{pmatrix}
+$$
+The samples of $X$ will come from $X_1 \sim \text{Poisson}(34)$, $X_2 \sim \text{Poisson}(38)$, and $X_3 \sim \text{Poisson}(39)$. All counts are similar.

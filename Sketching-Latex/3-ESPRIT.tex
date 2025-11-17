@@ -1,0 +1,175 @@
+\section{The ESPRIT algorithm}
+
+It is logical to first define the one dimensional ESPRIT problem before tackling the multidimensional Joint ESPRIT algorithm.
+
+\subsection*{The Signal Model and Array Manifold}
+
+We begin by defining the data received by an array of $M$ sensors. Let's assume $D$ narrowband signals, $s_1(t), \dots, s_D(t)$, impinge on a uniform linear array (ULA) from directions $\theta_1, \dots, \theta_D$. The signal received at the $m$-th sensor is a superposition of all $D$ signals plus additive noise $n_m(t)$.
+
+The full $M \times 1$ received signal vector $\mathbf{x}(t)$ is given by:
+\begin{equation*}
+\mathbf{x}(t) = \sum_{k=1}^{D} \mathbf{a}(\theta_k) s_k(t) + \mathbf{n}(t) = \mathbf{A} \mathbf{s}(t) + \mathbf{n}(t)
+\label{eq:signal_model}
+\end{equation*}
+
+Where:
+\begin{itemize}
+    \item $\mathbf{x}(t) = [x_1(t), \dots, x_M(t)]^T$ is the $M \times 1$ signal vector measured by the M different sensors.
+    \item $\mathbf{s}(t) = [s_1(t), \dots, s_D(t)]^T$ is the $D \times 1$ vector of source signals.
+    \item $\mathbf{n}(t) = [n_1(t), \dots, n_M(t)]^T$ is the $M \times 1$ noise vector.
+    \item $\mathbf{A} = [\mathbf{a}(\theta_1) \cdots \mathbf{a}(\theta_D)]$ is the $M \times D$ array manifold matrix.
+\end{itemize}
+
+For a ULA with inter-element spacing $d$ and signal wavelength $\lambda$, the steering vector $\mathbf{a}(\theta_k)$ for the $k$-th signal is:
+$$
+\mathbf{a}(\theta_k) = \begin{bmatrix} 1 \\ e^{j\phi_k} \\ e^{j2\phi_k} \\ \vdots \\ e^{j(M-1)\phi_k} \end{bmatrix} \quad , \text{ where } \phi_k = \frac{2\pi}{\lambda}d \sin(\theta_k)
+$$
+
+The full manifold matrix $\mathbf{A}$ is formed by concatenating these steering vectors as columns: $\mathbf{A} = [\mathbf{a}(\theta_1) \cdots \mathbf{a}(\theta_D)]$.
+
+Explicitly, this $M \times D$ matrix has a Vandermonde structure:
+$$
+\mathbf{A} = \begin{bmatrix}
+1 & 1 & \cdots & 1 \\
+e^{j\phi_1} & e^{j\phi_2} & \cdots & e^{j\phi_D} \\
+e^{j2\phi_1} & e^{j2\phi_2} & \cdots & e^{j2\phi_D} \\
+\vdots & \vdots & \ddots & \vdots \\
+e^{j(M-1)\phi_1} & e^{j(M-1)\phi_2} & \cdots & e^{j(M-1)\phi_D}
+\end{bmatrix}
+$$
+
+\subsection*{The Core Principle: Rotational Invariance}
+
+The ESPRIT algorithm's ingenuity lies in its use of a specific array geometry. The array is partitioned into two identical, overlapping subarrays, which we will call $X$ and $Y$.
+
+\begin{itemize}
+    \item \textbf{Subarray X:} Consists of sensors $1, 2, \dots, (M-1)$.
+    \item \textbf{Subarray Y:} Consists of sensors $2, 3, \dots, M$.
+\end{itemize}
+
+Subarray $Y$ is a perfect copy of Subarray $X$, but translationally displaced by the distance $d$. This physical displacement creates a mathematical relationship between their respective manifold matrices, $\mathbf{A}_X$ and $\mathbf{A}_Y$.
+
+$\mathbf{A}_X$ consists of the first $M-1$ rows of $\mathbf{A}$, and $\mathbf{A}_Y$ consists of the last $M-1$ rows of $\mathbf{A}$.
+Let's look at the $k$-th column of $\mathbf{A}_Y$ (the steering vector for $\theta_k$ on subarray Y):
+$$
+\mathbf{a}_Y(\theta_k) =
+\begin{bmatrix}
+e^{j \phi_k} \\
+e^{j 2\phi_k} \\
+\vdots \\
+e^{j (M-1)\phi_k}
+\end{bmatrix}
+= e^{j \phi_k}
+\begin{bmatrix}
+1 \\
+e^{j \phi_k} \\
+\vdots \\
+e^{j (M-2)\phi_k}
+\end{bmatrix}
+= (e^{j \frac{2\pi}{\lambda} d \sin(\theta_k)}) \cdot \mathbf{a}_X(\theta_k)
+$$
+This shows that the steering vector for Subarray $Y$ is just the steering vector for Subarray $X$ multiplied by a complex phase factor $e^{j \phi_k}$.
+
+We can express this relationship for all $D$ signals simultaneously using a $D \times D$ diagonal matrix $\mathbf{\Phi}$:
+\begin{equation}
+\mathbf{A}_Y = \mathbf{A}_X \mathbf{\Phi}
+\label{eq:invariance}
+\end{equation}
+where
+\begin{equation*}
+\mathbf{\Phi} = \text{diag} \left( e^{j \phi_1}, e^{j \phi_2}, \dots, e^{j \phi_D} \right)
+\end{equation*}
+This is the rotational invariance property. The DOAs we seek are embedded in the diagonal elements of $\mathbf{\Phi}$.
+
+\subsection*{Subspace Decomposition and Equivalence}
+
+The next step is to estimate the signal subspace from the received data. We compute the $M \times M$ covariance matrix $\mathbf{R}_{xx}$, theoretically defined as:
+$$
+\mathbf{R}_{xx} = E\left[ \mathbf{x}(t) \mathbf{x}(t)^H \right]
+$$
+In practice, we estimate this matrix from $n$ discrete time samples (snapshots). We form a data matrix $\mathbf{X}$ of size $n \times M$, where each of the $n$ rows contains the $M$ sensor measurements for a given snapshot. The sample covariance matrix $\hat{\mathbf{R}}_{xx}$ is then computed as:
+
+$$
+\hat{\mathbf{R}}_{xx} = \frac{1}{n} \mathbf{X}^T \mathbf{X}^*
+$$
+Assuming the signals and noise are uncorrelated ($E[\mathbf{s}\mathbf{n}^H] = \mathbf{0}$) and the noise is spatially white ($E[\mathbf{n}\mathbf{n}^H] = \sigma^2 \mathbf{I}$), the theoretical covariance matrix simplifies to:
+\begin{equation*}
+\mathbf{R}_{xx} = E\left[ (\mathbf{A} \mathbf{s}(t) + \mathbf{n}(t)) (\mathbf{A} \mathbf{s}(t) + \mathbf{n}(t))^H \right] = \mathbf{A} E[\mathbf{s}(t)\mathbf{s}(t)^H] \mathbf{A}^H + \sigma^2 \mathbf{I} = \mathbf{A} \mathbf{R}_{ss} \mathbf{A}^H + \sigma^2 \mathbf{I}
+\end{equation*}
+We perform an eigendecomposition on our estimated matrix $\mathbf{R}_{xx}$. The matrix $\mathbf{R}_{xx}$ has $M$ eigenvalues.
+\begin{itemize}
+    \item $D$ eigenvalues will be $\lambda_k + \sigma^2$, where $\lambda_k$ are the eigenvalues of $\mathbf{A} \mathbf{R}_{ss} \mathbf{A}^H$.
+    \item $M-D$ eigenvalues will be equal to $\sigma^2$.
+\end{itemize}
+The $D$ eigenvectors corresponding to the largest eigenvalues form the basis for the \textbf{Signal Subspace}, $\mathbf{E}_S$. The other $M-D$ eigenvectors form the \textbf{Noise Subspace}, $\mathbf{E}_N$.
+
+Crucially, the eigenvectors of $\mathbf{R}_{xx}$ are the same as the eigenvectors of $\mathbf{A} \mathbf{R}_{ss} \mathbf{A}^H$. The column space of $\mathbf{A} \mathbf{R}_{ss} \mathbf{A}^H$ is identical to the column space of $\mathbf{A}$ (assuming $D$ non-correlated signals).
+Therefore, the signal subspace and the array manifold span the \textbf{same $D$-dimensional space}.
+\begin{equation*}
+\text{span}(\mathbf{E}_S) = \text{span}(\mathbf{A})
+\end{equation*}
+This means there exists a unique, $D \times D$ invertible matrix $\mathbf{T}$ that relates them:
+\begin{equation}
+\mathbf{E}_S = \mathbf{A} \mathbf{T}
+\label{eq:subspace_relation}
+\end{equation}
+This $\mathbf{T}$ matrix is unknown, but as we will see, we don't need to find it.
+
+\subsection*{Deriving the Solution}
+
+Now we tie everything together. We partition our estimated signal subspace $\mathbf{E}_S$ into two $(M-1) \times D$ matrices, just as we did with the array manifold:
+\begin{itemize}
+    \item $\mathbf{E}_X$: First $M-1$ rows of $\mathbf{E}_S$.
+    \item $\mathbf{E}_Y$: Last $M-1$ rows of $\mathbf{E}_S$.
+\end{itemize}
+Let's substitute $\mathbf{E}_S = \mathbf{A} \mathbf{T}$ \eqref{eq:subspace_relation} into these new matrices.
+\begin{align}
+\mathbf{E}_X &= \mathbf{J}_X \mathbf{E}_S = (\mathbf{J}_X \mathbf{A}) \mathbf{T} = \mathbf{A}_X \mathbf{T} \label{eq:Ex} \\
+\mathbf{E}_Y &= \mathbf{J}_Y \mathbf{E}_S = (\mathbf{J}_Y \mathbf{A}) \mathbf{T} = \mathbf{A}_Y \mathbf{T} \label{eq:Ey}
+\end{align}
+(where $\mathbf{J}_X$ and $\mathbf{J}_Y$ are the selection matrices of 1s and 0s that select the rows).
+
+Now, we use the rotational invariance property $\mathbf{A}_Y = \mathbf{A}_X \mathbf{\Phi}$ \eqref{eq:invariance} by substituting it into \eqref{eq:Ey}:
+\begin{equation}
+\mathbf{E}_Y = (\mathbf{A}_X \mathbf{\Phi}) \mathbf{T} = \mathbf{A}_X \mathbf{\Phi} \mathbf{T}
+\label{eq:step1}
+\end{equation}
+From \eqref{eq:Ex}, we can write $\mathbf{A}_X = \mathbf{E}_X \mathbf{T}^{-1}$ (since $\mathbf{E}_X$ and $\mathbf{T}$ are invertible). Let's substitute this into \eqref{eq:step1}:
+$$
+\mathbf{E}_Y = (\mathbf{E}_X \mathbf{T}^{-1}) \mathbf{\Phi} \mathbf{T}
+$$
+By re-grouping the matrices, we get the central ESPRIT equation:
+\begin{equation*}
+\mathbf{E}_Y = \mathbf{E}_X (\mathbf{T}^{-1} \mathbf{\Phi} \mathbf{T})
+\end{equation*}
+Let us define a new $D \times D$ matrix $\mathbf{\Psi} = \mathbf{T}^{-1} \mathbf{\Phi} \mathbf{T}$.
+Our equation becomes:
+\begin{equation*}
+\mathbf{E}_Y = \mathbf{E}_X \mathbf{\Psi}
+\end{equation*}
+Since $\mathbf{E}_X$ and $\mathbf{E}_Y$ are known (estimated from our data), we can solve this overdetermined system for $\mathbf{\Psi}$. This is typically done using a Total Least Squares (TLS) solution, which is robust to noise.
+$$
+\mathbf{\Psi}_{TLS} = \text{argmin}_{\mathbf{\Psi}} \| [\mathbf{E}_X \mid \mathbf{E}_Y] \|_F
+$$
+
+\subsection*{Finding the DOAs from Eigenvalues}
+
+The final step is to retrieve the DOAs. We have our computed matrix $\mathbf{\Psi}$.
+The equation $\mathbf{\Psi} = \mathbf{T}^{-1} \mathbf{\Phi} \mathbf{T}$ is a \textbf{similarity transformation}. A fundamental theorem of linear algebra states that similar matrices have the exact same eigenvalues.
+
+Therefore:
+$$
+\text{eigenvalues}(\mathbf{\Psi}) = \text{eigenvalues}(\mathbf{\Phi}) = \{ e^{j \phi_1}, e^{j \phi_2}, \dots, e^{j \phi_D} \}
+$$
+So, by computing the $D$ eigenvalues of our estimated matrix $\mathbf{\Psi}$, $\{\lambda_1, \dots, \lambda_D\}$, we have found the $D$ phase factors:
+$$
+\lambda_k = e^{j \phi_k} = e^{j \frac{2\pi}{\lambda} d \sin(\theta_k)}
+$$
+We can now find each DOA $\theta_k$ by taking the angle of the corresponding eigenvalue:
+$$
+\arg(\lambda_k) = \phi_k = \frac{2\pi}{\lambda} d \sin(\theta_k)
+$$
+\begin{equation*}
+\theta_k = \arcsin \left( \frac{\lambda \cdot \arg(\lambda_k)}{2 \pi d} \right)
+\end{equation*}
+This gives us the $D$ direction of arrivals without any computationally expensive spectral search, which is the main advantage of ESPRIT.

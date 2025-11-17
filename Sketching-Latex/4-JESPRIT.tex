@@ -1,0 +1,128 @@
+\section{The Joint ESPRIT Algorithm}
+
+\subsection*{Signal Model}
+We consider a $d$-dimensional signal $\boldsymbol{y}[\boldsymbol{n}]$ composed of $r$ complex components.
+The signal at any $d$-dimensional coordinate $\boldsymbol{n} \in \mathbb{Z}^d$ is:
+$$ \boldsymbol{y}[\boldsymbol{n}] = \sum_{k=1}^{r} a_k e^{j\langle \boldsymbol{\omega}_k, \boldsymbol{n} \rangle} + \boldsymbol{w}[\boldsymbol{n}] $$
+where:
+\begin{itemize}
+    \item $a_k \in \mathbb{C}$ is the complex amplitude of component $k$.
+    \item $\boldsymbol{\omega}_k \in [-\pi, \pi)^d$ is the unknown $d$-dimensional frequency vector we want to find.
+    \item $\boldsymbol{w}[\boldsymbol{n}]$ is additive noise.
+\end{itemize}
+
+\subsection*{Acquisition Design}
+Instead of sampling the entire $d$-Dimensional space, we sample it along a set of $M$ 1D lines, where $M \ge d$.
+\begin{enumerate}
+    \item Choose a set of $M$ direction vectors, $\mathcal{U} = \{\boldsymbol{u}_l\}_{l=1}^M$, where $\boldsymbol{u}_l \in \mathbb{Z}^d$.
+    \item For each direction $\boldsymbol{u}_l$, choose $S_l$ random "base points" $\{\boldsymbol{p}_{l,s}\}_{s=1}^{S_l}$, with $S_l \ge r$.
+    \item For each pair $(l, s)$, sample $N_l$ points along the line $\mathcal{L}_{l,s}$, with $N_l \ge r+1$.
+    $$ \mathcal{L}_{l,s} = \{ \boldsymbol{p}_{l,s} + n \boldsymbol{u}_l : n = 0, \dots, N_l-1 \} $$
+\end{enumerate}
+This strategy reduces the $d$-D problem to a set of $M$ 1D problems, one for each direction $\boldsymbol{u}_l$.
+
+\subsection{Step 1: Per-Direction Model (Multi-snapshot 1D)}
+For a single direction $l$, we analyze the signal $z_{l,s}[n]$ sampled along the line $(l, s)$.
+By substituting the line coordinate $\boldsymbol{n}' = \boldsymbol{p}_{l,s} + n \boldsymbol{u}_l$ into the signal model:
+\begin{align*}
+    z_{l,s}[n] &= \sum_{k=1}^{r} a_k e^{j\langle \boldsymbol{\omega}_k, \boldsymbol{p}_{l,s} + n \boldsymbol{u}_l \rangle} + w_{l,s}[n] \\
+    z_{l,s}[n] &= \sum_{k=1}^{r} \left( a_k e^{j\langle \boldsymbol{\omega}_k, \boldsymbol{p}_{l,s} \rangle} \right) \left( e^{j\varphi_{k,l}} \right)^n + w_{l,s}[n]
+\end{align*}
+This is a standard 1D multi-snapshot model. The term $\varphi_{k,l} = \langle \boldsymbol{\omega}_k, \boldsymbol{u}_l \rangle$ is the 1D frequency for this direction; it is the scalar projection of the $d$-D frequency vector $\boldsymbol{\omega}_k$ onto the 1D direction vector $\boldsymbol{u}_l$.
+We can stack all $S_l$ snapshots (from the $S_l$ base points) into a matrix equation:
+$$ \mathbf{Z}_l = \mathbf{V}_l \mathbf{C}_l + \mathbf{W}_l $$
+where $\mathbf{Z}_l$ is the $N_l \times S_l$ measurement matrix, $\mathbf{V}_l$ is the $N_l \times r$ frequency matrix, $\mathbf{C}_l$ is the $r \times S_l$ amplitude matrix, and $\mathbf{W}_l$ is the noise matrix.
+Explicitly, the matrices are:
+
+\begin{align*}
+ \mathbf{Z}_l &= \begin{pmatrix}
+z_{l,1}[0] & z_{l,2}[0] & \cdots & z_{l,S_l}[0] \\
+z_{l,1}[1] & z_{l,2}[1] & \cdots & z_{l,S_l}[1] \\
+\vdots & \vdots & \ddots & \vdots \\
+z_{l,1}[N_l-1] & z_{l,2}[N_l-1] & \cdots & z_{l,S_l}[N_l-1]
+\end{pmatrix} \\[5ex]
+ \mathbf{V}_l &= \begin{pmatrix}
+1 & 1 & \cdots & 1 \\
+e^{j\varphi_{1,l}} & e^{j\varphi_{2,l}} & \cdots & e^{j\varphi_{r,l}} \\
+e^{j2\varphi_{1,l}} & e^{j2\varphi_{2,l}} & \cdots & e^{j2\varphi_{r,l}} \\
+\vdots & \vdots & \ddots & \vdots \\
+e^{j(N_l-1)\varphi_{1,l}} & e^{j(N_l-1)\varphi_{2,l}} & \cdots & e^{j(N_l-1)\varphi_{r,l}}
+\end{pmatrix} \quad \text{where } \varphi_{k,l} = \langle \boldsymbol{\omega}_k, \boldsymbol{u}_l \rangle  \\[5ex]
+ \mathbf{C}_l &= \begin{pmatrix}
+a_{1}e^{j\langle\boldsymbol{\omega}_{1},\boldsymbol{p}_{1,l}\rangle} & a_{1}e^{j\langle\boldsymbol{\omega}_{1},\boldsymbol{p}_{2,l}\rangle} & \cdots & a_{1}e^{j\langle\boldsymbol{\omega}_{1},\boldsymbol{p}_{S_l,l}\rangle} \\
+a_{2}e^{j\langle\boldsymbol{\omega}_{2},\boldsymbol{p}_{1,l}\rangle} & a_{2}e^{j\langle\boldsymbol{\omega}_{2},\boldsymbol{p}_{2,l}\rangle} & \cdots & a_{2}e^{j\langle\boldsymbol{\omega}_{2},\boldsymbol{p}_{S_l,l}\rangle} \\
+\vdots & 
+\vdots & \ddots & \vdots \\
+a_{r}e^{j\langle\boldsymbol{\omega}_{r},\boldsymbol{p}_{1,l}\rangle} & a_{r}e^{j\langle\boldsymbol{\omega}_{r},\boldsymbol{p}_{2,l}\rangle} & \cdots & a_{r}e^{j\langle\boldsymbol{\omega}_{r},\boldsymbol{p}_{S_l,l}\rangle}
+\end{pmatrix} 
+\end{align*}
+
+\subsection{Step 2: Subspace Estimation}
+For each direction $l$, we compute the spatial covariance matrix and find the signal subspace.
+\begin{enumerate}
+    \item Compute covariance: $\hat{\mathbf{R}}_l = \frac{1}{S_l} \mathbf{Z}_l \mathbf{Z}_l^H$.
+    \item Compute the SVD of $\hat{\mathbf{R}}_l$ and extract the $r$ dominant eigenvectors to form the $N_l \times r$ signal subspace matrix, $\mathbf{U}_{s,l}$.
+\end{enumerate}
+
+\subsection{Step 3: 1D ESPRIT per Direction}
+We apply the core ESPRIT rotational invariance principle to each $\mathbf{U}_{s,l}$ independently.
+\begin{enumerate}
+    \item Partition $\mathbf{U}_{s,l}$ into two $(N_l-1) \times r$ matrices:
+        \begin{itemize}
+            \item $\mathbf{U}_1 = \mathbf{U}_{s,l}$ with the last row removed.
+            \item $\mathbf{U}_2 = \mathbf{U}_{s,l}$ with the first row removed.
+        \end{itemize}
+    \item Solve the linear system $\mathbf{U}_2 \approx \mathbf{U}_1 \mathbf{\Psi}_l$ (e.g., via least-squares) to find the $r \times r$ "shuffled" matrix $\mathbf{\Psi}_l$.
+\end{enumerate}
+At the end of this step, we have $M$ calculated, "shuffled" matrices: $\{\mathbf{\Psi}_1, \mathbf{\Psi}_2, \dots, \mathbf{\Psi}_M\}$.
+This is the dead end of the naive approach. If we call a standard eigenvalue solver on each $\mathbf{\Psi}_l$, it will return $r$ eigenvalues.
+Crucially, it returns them in a numerical order (e.g., sorted by magnitude), not in their true physical order (index $k=1, \dots, r$).
+Because the eigenvalues for each $\mathbf{\Psi}_l$ have different magnitudes, this numerical sorting scrambles the component order differently for each direction, and we are left with the "pairing problem".
+
+\subsection{Step 4: Joint ESPRIT (Simultaneous Diagonalization)}
+From the 1D ESPRIT case, we know the relationship between the calculated matrix $\mathbf{\Psi}_l$ and its corresponding diagonal matrix of phase factors $\mathbf{\Phi}_l$ is a similarity transformation $\mathbf{\Psi}_l = \mathbf{T}^{-1}\mathbf{\Phi}_l \mathbf{T}$.
+
+The core theory of Joint ESPRIT states that, in the absence of noise, this similarity transform $\mathbf{T}$ is common to all $M$ directions. Therefore, all $M$ matrices $\{\mathbf{\Psi}_1, \dots, \mathbf{\Psi}_M\}$ share a common set of eigenvectors (the columns of $\mathbf{T}^{-1}$).
+
+The "pairing problem" noted in Step 3 arises from this observation: if one applies a standard eigenvalue solver independently to each $\mathbf{\Psi}_l$, the solver will find the correct eigenvalues but return them in a numerical order (e.g., sorted by magnitude). This independent sorting breaks the common physical ordering of the components, making it impossible to pair the 1D frequencies across different directions.
+
+Joint ESPRIT avoids this ambiguity by not finding the eigenvalues of each $\mathbf{\Psi}_l$ separately. Instead, it takes the entire set of "shuffled" matrices $\{\mathbf{\Psi}_1, \dots, \mathbf{\Psi}_M\}$ and searches for the single transformation matrix $\hat{\mathbf{T}}$ that best diagonalizes all of them simultaneously.
+
+We solve the optimization problem:
+$$ \hat{\mathbf{T}} = \arg\min_\mathbf{T} \sum_{l=1}^M \left\|
+\text{offdiag}(\hat{\mathbf{T}} \mathbf{\Psi}_l \hat{\mathbf{T}}^{-1}) \right\|_F^2 $$
+This optimization finds the single $\hat{\mathbf{T}}$ that minimizes the off-diagonal elements across all matrices. This process is a form of simultaneous eigendecomposition and is formally known as \textbf{Joint Diagonalization}.
+
+This algorithm finds the single "best-fit" un-shuffling matrix $\hat{\mathbf{T}}$ that is common to all $M$ directions. This $\hat{\mathbf{T}}$ is our estimate for the "true" transformation matrix, and its inverse, $\hat{\mathbf{T}}^{-1}$, contains the correctly-ordered, common eigenvectors as its columns.
+
+\subsection{Step 5: Reconstruct $d$-D Frequencies}
+Now that we have the common un-shuffler $\hat{\mathbf{T}}$, we can find the paired frequencies.
+\begin{enumerate}
+    \item \textbf{Un-shuffle the matrices:} We apply the common un-shuffler $\hat{\mathbf{T}}$ to all $M$ of our calculated $\mathbf{\Psi}_l$ matrices to get the diagonalized "goal" matrices, $\hat{\mathbf{\Phi}}_l$.
+    $$ \hat{\mathbf{\Phi}}_l = \hat{\mathbf{T}} \mathbf{\Psi}_l \hat{\mathbf{T}}^{-1} $$
+    
+    \item \textbf{Read the paired frequencies:} Because we used the single, common un-shuffler $\hat{\mathbf{T}}$, the diagonal elements of all the $\hat{\mathbf{\Phi}}_l$ matrices are now correctly paired.
+    The $k$-th diagonal element of $\hat{\mathbf{\Phi}}_1$ corresponds to the $k$-th diagonal element of $\hat{\mathbf{\Phi}}_2$, and so on.
+    We find the 1D frequencies $\hat{\varphi}_{k,l}$ by taking the angle of the $k$-th diagonal element of $\hat{\mathbf{\Phi}}_l$:
+    $$ \hat{\varphi}_{k,l} = \arg\left( (\hat{\mathbf{\Phi}}_l)_{kk} \right) $$
+    
+    \item \textbf{Phase Unwrapping:} It is necessary to "unwrap" the $\hat{\varphi}_{k,l}$ values since they were recovered using the $\arg()$ function, which only returns a "wrapped" value in the principal range (e.g., $(-\pi, \pi]$).   Phase unwrapping algorithms correct these jumps by adding or subtracting multiples of $2\pi$ to restore a smooth sequence, $\tilde{\varphi}_k$. This process relies on a key assumption: the true frequency projections $\langle \boldsymbol{\omega}_k, \boldsymbol{u}_l \rangle$ change smoothly (by less than $\pi$) between adjacent direction vectors. This assumption is only met if the set of $M$ direction vectors is sufficiently dense, which is why $M$ is chosen to be greater than $d$ ($M > d$). This redundancy provides a dense sampling of the direction space, ensuring the projections can be unwrapped reliably.
+    
+    \item \textbf{Reconstruct $\boldsymbol{\omega}_k$:} For each component $k$, we now have its vector of $M$ unwrapped 1D frequency projections, $\boldsymbol{\tilde{\varphi}}_k = [\tilde{\varphi}_{k,1}, \dots, \tilde{\varphi}_{k,M}]^T$. We find the $d$-D vector $\boldsymbol{\omega}_k$ by solving the linear system $\boldsymbol{\tilde{\varphi}}_k \approx \mathbf{U} \boldsymbol{\omega}_k$.
+    Explicitly, this is:
+    $$
+    \underbrace{\begin{pmatrix} \tilde{\varphi}_{k,1} \\ \tilde{\varphi}_{k,2} \\ \vdots \\ \tilde{\varphi}_{k,M} \end{pmatrix}}_{\boldsymbol{\tilde{\varphi}}_k \text{ (known)}}
+    \approx
+    \underbrace{\begin{pmatrix} \text{--- } \boldsymbol{u}_1 \text{ ---} \\ \text{--- } \boldsymbol{u}_2 \text{ ---} \\ \vdots \\ \text{--- } \boldsymbol{u}_M \text{ ---} \end{pmatrix}}_{\mathbf{U} \text{ (known)}}
+    \underbrace{\begin{pmatrix} \omega_{k,1} \\ \vdots \\ \omega_{k,d} \end{pmatrix}}_{\boldsymbol{\omega}_k \text{ (unknown)}}
+    $$
+    We solve this $M \times d$ system using the unwrapped vector $\boldsymbol{\tilde{\varphi}}_k$:
+    $$ \hat{\boldsymbol{\omega}}_k = (\mathbf{U}^T \mathbf{U})^{-1} \mathbf{U}^T \boldsymbol{\tilde{\varphi}}_k $$
+\end{enumerate}
+
+\subsection{Step 6: Amplitude Estimation}
+Now that we have the $d$-D frequencies $\hat{\boldsymbol{\omega}}_k$ for all components, the only unknowns are the original amplitudes $a_k$.
+We solve for them by setting up one final global least-squares problem:
+$$ \hat{\boldsymbol{a}} = \arg\min_{\boldsymbol{a}} \sum_{\boldsymbol{n} \in \text{all sampled points}} \left|
+z[\boldsymbol{n}] - \sum_{k=1}^r a_k e^{j\langle \hat{\boldsymbol{\omega}}_k, \boldsymbol{n} \rangle} \right|^2 $$
+This finds the $r$ amplitudes that best fit all the data we collected.

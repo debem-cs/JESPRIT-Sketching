@@ -30,3 +30,11 @@ Thumbs.db
 # If your project creates any logs or temporary files, add them here
 # Example:
 # *.log
+
+# LaTeX compilation artifacts
+main.aux
+main.fdb_latexmk
+main.fls
+main.log
+main.synctex.gz
+main.pdf
