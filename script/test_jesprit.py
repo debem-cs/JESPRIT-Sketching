@@ -31,6 +31,7 @@ def test_jesprit():
     print("True component rates (lambda_k):")
     for k in range(lambdas_true.shape[1]):
         print(f"  Component {k+1}:\n{lambdas_true[:, k]}")
+    print("\nTrue latent factors (pi):\n", pi)
 
     X = generate_mixed_poisson_samples(A, pi, z, n_samples)
     
@@ -51,7 +52,7 @@ def test_jesprit():
     print("Estimated component rates (lambda_hat):")
     for k in range(omega_hat.shape[0]):
         print(f"  Component {k+1}:\n{omega_hat[k, :]}")
-    print("\nEstimated mixture weights (pi_hat):\n", a_k)
+    print("\nEstimated latent factors probabilities (pi_hat):\n", a_k)
     
 if __name__ == "__main__":
     test_jesprit()
