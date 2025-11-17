@@ -17,6 +17,8 @@ def jesprit(all_Z, r, U_directions, p_base_points, delta):
         The direction vectors used for sampling, shape (M, d).
     p_base_points : np.ndarray
         The base points used for sampling, shape (M, S, d).
+    delta : float
+        Scaling factor for the grid to keep |t| close to 1.
 
     Returns
     -------
