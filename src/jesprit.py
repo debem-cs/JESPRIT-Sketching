@@ -52,13 +52,13 @@ def jesprit(all_Z, r, U_directions, p_base_points, delta):
         Phi_l = all_Phi_hat[:, l*r:(l+1)*r]
         # The diagonal contains the eigenvalues, whose angles are the 1D frequencies.
         diag_elements = np.diag(Phi_l)
-        paired_phis[:, l] = 1/delta*np.angle(diag_elements)
+        paired_phis[:, l] = np.angle(diag_elements)
 
     # Phase unwrap along each row.
     unwrapped_phis = np.unwrap(paired_phis, axis=1)
 
     # Step 3: Least squares to estimate omegas
-    omega_hat = (pinv(U_directions) @ unwrapped_phis.T).T
+    omega_hat = 1/delta*(pinv(U_directions) @ unwrapped_phis.T).T
     omega_hat = np.abs(np.real(omega_hat))
 
     # Step 5: Amplitude Estimation (pi_k).    

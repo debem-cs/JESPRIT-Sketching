@@ -11,17 +11,16 @@ def test_jesprit():
         [2,  8],  # "football"
         [1,  9]   # "investment"
     ])
-    
-    r=2 # number of latent factors
 
-    z_1 = np.array([[5], [0.1]]) 
-    z_2 = np.array([[0.5], [10]])
+    z_1 = np.array([[5], [0]]) 
+    z_2 = np.array([[0], [10]])
     
     z = np.hstack([z_1, z_2]) 
+    r= np.size(z, 1)
+
+    pi = np.array([0.2, 0.8])
     
-    pi = np.array([0.6, 0.4])
-    
-    n_samples = 1000
+    n_samples = 10000
     delta = 0.01
     
     d, m = A.shape
@@ -36,8 +35,8 @@ def test_jesprit():
     X = generate_mixed_poisson_samples(A, pi, z, n_samples)
     
     # Sampling parameters for JESPRIT
-    M = 10  # Number of directions (>= d)
-    S = 10   # Number of snapshots (>= r)
+    M = 50  # Number of directions (>= d)
+    S = 50   # Number of snapshots (>= r)
     N = 10   # Number of samples per line (>= r + 1)
     
     all_Z, U_directions, p_base_points = sample_PGF(X, M, S, N, delta)
