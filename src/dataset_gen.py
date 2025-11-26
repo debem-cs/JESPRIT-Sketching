@@ -68,4 +68,4 @@ def generate_mixed_poisson_samples(A, pi, z, n_samples):
     # X_samples will be (d x n_samples)
     X_samples = np.random.poisson(chosen_rates).T
 
-    return X_samples
+    return X_samples, Lambda_matrix

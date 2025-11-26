@@ -18,7 +18,7 @@ def test_sample_pgf():
     pi = np.array([0.6, 0.4])
     n_samples = 2000  # Increased sample size for better convergence
 
-    X = generate_mixed_poisson_samples(A, pi, z, n_samples)
+    X, _ = generate_mixed_poisson_samples(A, pi, z, n_samples)
     assert X.shape == (n_samples, d)
 
     # --- 2. Define sampling parameters ---

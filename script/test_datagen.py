@@ -45,7 +45,7 @@ def test_generation():
     print("pi vector (K,):\n", pi)
 
     # --- 2. Call the Function ---
-    X = generate_mixed_poisson_samples(A, pi, z, n_samples)
+    X, _ = generate_mixed_poisson_samples(A, pi, z, n_samples)
 
     # --- 3. Verify Output ---
     print("\n--- Verification ---")
