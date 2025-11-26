@@ -65,10 +65,10 @@ def evaluate_parameters():
     # Ranges to test
     # Define start, stop, step for each parameter
     param_ranges = {
-        'M': np.arange(5, 55, 5),      # 5, 10, ..., 50
-        'S': np.arange(5, 55, 5),      # 5, 10, ..., 50
-        'N': np.arange(5, 55, 5),      # 5, 10, ..., 50
-        'delta': np.arange(0.005, 0.05, 0.005) # 0.005, 0.01, ..., 0.1
+        'M': np.arange(1, 20, 1),      # 5, 10, ..., 50
+        'S': np.arange(1, 20, 1),      # 5, 10, ..., 50
+        'N': np.arange(1, 20, 1),      # 5, 10, ..., 50
+        'delta': np.arange(0.0005, 0.02, 0.0005) # 0.005, 0.01, ..., 0.1
     }
     
     results = {}
