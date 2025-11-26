@@ -33,6 +33,7 @@ def jesprit(all_Z, r, U_directions, p_base_points, delta):
     if M == 0:
         raise ValueError("all_Z must not be empty.")
     N, S = all_Z[0].shape
+    d = U_directions.shape[1]
 
     # Step 2: Estimate Rotational Invariance Matrices Psi_l.
     all_Psi = []
@@ -46,13 +47,13 @@ def jesprit(all_Z, r, U_directions, p_base_points, delta):
     T_hat, all_Phi_hat = joint_diag(A)
 
     # Step 4: Reconstruct d-D Frequencies (omega_k).
-    paired_phis = np.zeros((r, M))
-    for l in range(M):
-        # Extract the l-th diagonalized matrix.
-        Phi_l = all_Phi_hat[:, l*r:(l+1)*r]
-        # The diagonal contains the eigenvalues, whose angles are the 1D frequencies.
-        diag_elements = np.diag(Phi_l)
-        paired_phis[:, l] = np.angle(diag_elements)
+    # all_Phi_hat has shape (r, M*r). We reshape to (r, M, r) to access blocks.
+    Phi_reshaped = all_Phi_hat.reshape(r, M, r)
+    
+    # Extract diagonals: paired_phis[k, l] = angle(Phi_reshaped[k, l, k])
+    # We use advanced indexing to extract the diagonal elements for each M block.
+    diag_elements = Phi_reshaped[np.arange(r), :, np.arange(r)]
+    paired_phis = np.angle(diag_elements)
 
     # Phase unwrap along each row.
     unwrapped_phis = np.unwrap(paired_phis, axis=1)
@@ -62,18 +63,36 @@ def jesprit(all_Z, r, U_directions, p_base_points, delta):
     omega_hat = np.abs(np.real(omega_hat))
 
     # Step 5: Amplitude Estimation (pi_k).    
-    num_total_samples = M * S * N
-    A_glob = np.zeros((num_total_samples, r), dtype=np.complex128)
-    y_vec = np.zeros(num_total_samples, dtype=np.complex128)
+    # Vectorized construction of A_glob and y_vec
     
-    i = 0 # Global sample index
-    for l in range(M):
-        for s in range(S):
-            for n in range(N):
-                n_vec = p_base_points[l, s, :] + n * U_directions[l, :]
-                A_glob[i, :] = np.exp(1j * np.dot(omega_hat, delta*n_vec))
-                y_vec[i] = all_Z[l][n, s]
-                i += 1
+    # Reshape for broadcasting to create N_VEC of shape (M, S, N, d)
+    # p_base_points: (M, S, d) -> (M, S, 1, d)
+    P_broad = p_base_points[:, :, np.newaxis, :]
+    # U_directions: (M, d) -> (M, 1, 1, d)
+    U_broad = U_directions[:, np.newaxis, np.newaxis, :]
+    # n_vals: (N,) -> (1, 1, N, 1)
+    n_vals = np.arange(N)[np.newaxis, np.newaxis, :, np.newaxis]
+    
+    # Compute all points n_vec
+    N_VEC = P_broad + n_vals * U_broad
+    
+    # Flatten to (M*S*N, d) to match the order of loops (l, s, n)
+    N_VEC_flat = N_VEC.reshape(-1, d)
+    
+    # Compute A_glob
+    # omega_hat: (r, d)
+    # exponent: (M*S*N, r)
+    exponent = 1j * delta * (N_VEC_flat @ omega_hat.T)
+    A_glob = np.exp(exponent)
+    
+    # Construct y_vec
+    # all_Z is list of (N, S) arrays.
+    # We need to flatten in order (l, s, n).
+    # Convert to array (M, N, S)
+    Z_array = np.array(all_Z)
+    # Transpose to (M, S, N) so that flattening corresponds to l, s, n order
+    Z_array = Z_array.transpose(0, 2, 1)
+    y_vec = Z_array.reshape(-1)
 
     a_k = pinv(A_glob) @ y_vec
     a_k = np.abs(a_k)
