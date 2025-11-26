@@ -42,7 +42,6 @@ def evaluate_parameters():
     # Ground truth parameters
     A = np.array([
         [100, 1],
-        [1,  100],
         [1,  100]
     ])
     z_1 = np.array([[1], [0]]) 
