@@ -36,14 +36,27 @@ def jesprit(all_Z, r, U_directions, p_base_points, delta):
     d = U_directions.shape[1]
 
     # Step 2: Estimate Rotational Invariance Matrices Psi_l.
-    all_Psi = []
-    for l in range(M):
-        # esprit() expects (snapshots, sensors), so we transpose Z_l.
-        Psi_l = esprit(all_Z[l].T, r)
-        all_Psi.append(Psi_l)
+    # all_Z is list of M arrays of shape (N, S).
+    # We stack them to (M, N, S).
+    Z_stack = np.stack(all_Z)
+    
+    # esprit expects (batch, snapshots, sensors).
+    # We treat each direction l as a batch item.
+    # Each Z_l has shape (N, S).
+    # In the original code, we passed Z_l.T which is (S, N).
+    # So snapshots=S, sensors=N.
+    # We need input shape (M, S, N).
+    Z_input = Z_stack.transpose(0, 2, 1)
+    
+    # all_Psi: shape (M, r, r)
+    all_Psi = esprit(Z_input, r)
 
     # Step 3: Joint Diagonalization of Psi Matrices.
-    A = np.hstack(all_Psi)
+    # joint_diag expects A of shape (r, M*r).
+    # We need to stack the Psi matrices horizontally.
+    # all_Psi is (M, r, r).
+    # Transpose to (r, M, r) -> reshape to (r, M*r).
+    A = all_Psi.transpose(1, 0, 2).reshape(r, M * r)
     T_hat, all_Phi_hat = joint_diag(A)
 
     # Step 4: Reconstruct d-D Frequencies (omega_k).

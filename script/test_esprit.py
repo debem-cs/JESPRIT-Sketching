@@ -40,7 +40,10 @@ def test_esprit():
 
     # 2. Run the ESPRIT algorithm
     # We expect to get 'r' estimated frequencies.
-    phi_estimated = esprit(X_for_esprit, r)
+    # esprit returns Psi, we need to compute eigenvalues to get frequencies
+    Psi = esprit(X_for_esprit, r)
+    eigenvalues, _ = np.linalg.eig(Psi)
+    phi_estimated = np.angle(eigenvalues)
 
     # 3. Compare estimated frequencies with true frequencies
     # We sort both arrays because the order of estimated frequencies is not guaranteed.
