@@ -2,6 +2,7 @@ import numpy as np
 from esprit import esprit
 from joint_diag import joint_diag
 from numpy.linalg import pinv
+import itertools
 
 def jesprit(all_Z, r, U_directions, p_base_points, delta):
     """
@@ -112,3 +113,35 @@ def jesprit(all_Z, r, U_directions, p_base_points, delta):
     a_k = a_k / np.sum(a_k)
     
     return omega_hat, a_k
+
+def compute_error(lambda_true, pi_true, lambda_est, pi_est):
+    """
+    Computes the estimation error, handling permutation ambiguity.
+    Returns (rate_error, weight_error) for the best permutation.
+    """
+    r = len(pi_true)
+    # Try all permutations to match estimated components to true components
+    permutations = list(itertools.permutations(range(r)))
+    
+    min_total_error = float('inf')
+    best_rate_error = 0.0
+    best_weight_error = 0.0
+    
+    for perm in permutations:
+        perm = list(perm)
+        lambda_est_perm = lambda_est[perm, :].T
+        
+        # Error in rates (normalized)
+        rate_error = np.linalg.norm(lambda_true - lambda_est_perm) / np.linalg.norm(lambda_true)
+        
+        # Error in weights
+        weight_error = np.linalg.norm(pi_true - pi_est[perm])
+        
+        total_error = rate_error + weight_error
+        
+        if total_error < min_total_error:
+            min_total_error = total_error
+            best_rate_error = rate_error
+            best_weight_error = weight_error
+            
+    return best_rate_error, best_weight_error

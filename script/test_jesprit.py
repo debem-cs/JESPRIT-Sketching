@@ -1,18 +1,17 @@
 import numpy as np
 from dataset_gen import generate_mixed_poisson_samples
 from pgf import sample_PGF
-from jesprit import jesprit
+from jesprit import jesprit, compute_error
 
 def test_jesprit():   
     # --- 1. Define Parameters (Based on PDF Example 1.1) ---
     
     A = np.array([
-        [100, 1],  # "calculus"
-        [1,  100],  # "football"
-        [1,  100]   # "investment"
+        [100, 1],
+        [1,  100]
     ])
 
-    z_1 = np.array([[1], [1]]) 
+    z_1 = np.array([[1], [0]]) 
     z_2 = np.array([[0], [1]])
     
     z = np.hstack([z_1, z_2]) 
@@ -53,6 +52,10 @@ def test_jesprit():
     for k in range(omega_hat.shape[0]):
         print(f"  Component {k+1}:\n{omega_hat[k, :]}")
     print("\nEstimated latent factors probabilities (pi_hat):\n", a_k)
+
+    rate_error, weight_error = compute_error(lambdas_true, pi, omega_hat, a_k)
+    print(f"\nRate Error: {100*rate_error:.2f}%")
+    print(f"Weight Error: {100*weight_error:.2f}%")
     
 if __name__ == "__main__":
     test_jesprit()
