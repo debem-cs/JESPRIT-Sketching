@@ -1,0 +1,970 @@
+Evaluation Results
+==================
+
+Default Parameters:
+{'M': 7, 'S': 7, 'N': 7, 'delta': 0.01}
+
+Ground Truth Rates (Lambda):
+[[100   1]
+ [  1 100]]
+Ground Truth Weights (Pi):
+[0.2 0.8]
+
+--- Testing Parameter: M ---
+
+Parameter M = 1
+Rate Error: 0.722562
+Weight Error: 0.301154
+Estimated Rates (omega_hat):
+[[60.90530144 74.62184594]
+ [29.41026001 36.03377439]]
+Estimated Weights (a_k):
+[0.5870523 0.4129477]
+------------------------------
+
+Parameter M = 2
+Rate Error: 0.045872
+Weight Error: 0.008154
+Estimated Rates (omega_hat):
+[[  4.23754987 104.65256757]
+ [ 98.25899065   3.63229708]]
+Estimated Weights (a_k):
+[0.79423423 0.20576577]
+------------------------------
+
+Parameter M = 3
+Rate Error: 0.040078
+Weight Error: 0.015819
+Estimated Rates (omega_hat):
+[[ 1.80259311 99.08880345]
+ [97.0622847   5.69296516]]
+Estimated Weights (a_k):
+[0.78881424 0.21118576]
+------------------------------
+
+Parameter M = 4
+Rate Error: 0.034513
+Weight Error: 0.028925
+Estimated Rates (omega_hat):
+[[  0.62105085  97.09881474]
+ [100.47089009   4.8784648 ]]
+Estimated Weights (a_k):
+[0.77954724 0.22045276]
+------------------------------
+
+Parameter M = 5
+Rate Error: 0.022447
+Weight Error: 0.020263
+Estimated Rates (omega_hat):
+[[ 2.6333487  98.34037182]
+ [98.43351765  2.48410369]]
+Estimated Weights (a_k):
+[0.78567221 0.21432779]
+------------------------------
+
+Parameter M = 6
+Rate Error: 0.037300
+Weight Error: 0.020005
+Estimated Rates (omega_hat):
+[[ 1.45647766 98.12429753]
+ [97.33473705  5.12284663]]
+Estimated Weights (a_k):
+[0.78585457 0.21414543]
+------------------------------
+
+Parameter M = 7
+Rate Error: 0.033164
+Weight Error: 0.016564
+Estimated Rates (omega_hat):
+[[  2.87528852 102.65694876]
+ [ 96.71228388   1.78372191]]
+Estimated Weights (a_k):
+[0.78828735 0.21171265]
+------------------------------
+
+Parameter M = 8
+Rate Error: 0.025992
+Weight Error: 0.019585
+Estimated Rates (omega_hat):
+[[  1.16218911  98.17425607]
+ [101.07355597   4.00013775]]
+Estimated Weights (a_k):
+[0.78615148 0.21384852]
+------------------------------
+
+Parameter M = 9
+Rate Error: 0.045201
+Weight Error: 0.013281
+Estimated Rates (omega_hat):
+[[ 5.21711455 99.44270454]
+ [95.52968119  2.66970919]]
+Estimated Weights (a_k):
+[0.79060863 0.20939137]
+------------------------------
+
+Parameter M = 10
+Rate Error: 0.035635
+Weight Error: 0.021152
+Estimated Rates (omega_hat):
+[[ 3.58608454 99.32573849]
+ [97.06334837  4.10384862]]
+Estimated Weights (a_k):
+[0.78504308 0.21495692]
+------------------------------
+
+Parameter M = 11
+Rate Error: 0.035091
+Weight Error: 0.019651
+Estimated Rates (omega_hat):
+[[ 4.95591498 99.67303933]
+ [97.21604863  2.06007288]]
+Estimated Weights (a_k):
+[0.78610441 0.21389559]
+------------------------------
+
+Parameter M = 12
+Rate Error: 0.036374
+Weight Error: 0.017350
+Estimated Rates (omega_hat):
+[[ 3.70913686 98.30771986]
+ [97.55362086  4.20572995]]
+Estimated Weights (a_k):
+[0.78773156 0.21226844]
+------------------------------
+
+Parameter M = 13
+Rate Error: 0.020107
+Weight Error: 0.018326
+Estimated Rates (omega_hat):
+[[ 3.55964637 98.92188598]
+ [99.39080002  1.03419188]]
+Estimated Weights (a_k):
+[0.7870418 0.2129582]
+------------------------------
+
+Parameter M = 14
+Rate Error: 0.037788
+Weight Error: 0.018699
+Estimated Rates (omega_hat):
+[[ 3.98724347 98.88163291]
+ [96.79848173  3.8526166 ]]
+Estimated Weights (a_k):
+[0.78677799 0.21322201]
+------------------------------
+
+Parameter M = 15
+Rate Error: 0.043792
+Weight Error: 0.020957
+Estimated Rates (omega_hat):
+[[ 5.24136382 98.40794156]
+ [96.24375381  2.93026266]]
+Estimated Weights (a_k):
+[0.7851815 0.2148185]
+------------------------------
+
+Parameter M = 16
+Rate Error: 0.035076
+Weight Error: 0.019572
+Estimated Rates (omega_hat):
+[[ 3.52276899 99.18960828]
+ [97.00737714  3.93796701]]
+Estimated Weights (a_k):
+[0.78616021 0.21383979]
+------------------------------
+
+Parameter M = 17
+Rate Error: 0.034314
+Weight Error: 0.018368
+Estimated Rates (omega_hat):
+[[  4.19066469 100.37144325]
+ [ 96.39299912   1.47174967]]
+Estimated Weights (a_k):
+[0.78701164 0.21298836]
+------------------------------
+
+Parameter M = 18
+Rate Error: 0.031458
+Weight Error: 0.019211
+Estimated Rates (omega_hat):
+[[ 2.90714273 98.28881462]
+ [97.9422818   3.99912099]]
+Estimated Weights (a_k):
+[0.78641559 0.21358441]
+------------------------------
+
+Parameter M = 19
+Rate Error: 0.026375
+Weight Error: 0.019391
+Estimated Rates (omega_hat):
+[[ 1.76764512 99.08860838]
+ [97.70318607  3.6868588 ]]
+Estimated Weights (a_k):
+[0.78628818 0.21371182]
+------------------------------
+--- Testing Parameter: S ---
+
+Parameter S = 1
+Rate Error: 2.848996
+Weight Error: 0.227870
+Estimated Rates (omega_hat):
+[[  0.67848822  98.26861435]
+ [297.52565424 352.18702016]]
+Estimated Weights (a_k):
+[0.9611284 0.0388716]
+------------------------------
+
+Parameter S = 2
+Rate Error: 0.020280
+Weight Error: 0.020170
+Estimated Rates (omega_hat):
+[[  3.75074021 100.58293118]
+ [ 99.58731686   1.3866688 ]]
+Estimated Weights (a_k):
+[0.78573742 0.21426258]
+------------------------------
+
+Parameter S = 3
+Rate Error: 0.054217
+Weight Error: 0.002877
+Estimated Rates (omega_hat):
+[[  2.70760379  96.38321584]
+ [103.69929179   6.39578456]]
+Estimated Weights (a_k):
+[0.79796545 0.20203455]
+------------------------------
+
+Parameter S = 4
+Rate Error: 0.017917
+Weight Error: 0.021617
+Estimated Rates (omega_hat):
+[[  1.04346689  98.29449258]
+ [100.8680282    2.66042024]]
+Estimated Weights (a_k):
+[0.78471419 0.21528581]
+------------------------------
+
+Parameter S = 5
+Rate Error: 0.035035
+Weight Error: 0.020094
+Estimated Rates (omega_hat):
+[[ 1.37030394 97.17690903]
+ [99.57746827  5.03308489]]
+Estimated Weights (a_k):
+[0.78579146 0.21420854]
+------------------------------
+
+Parameter S = 6
+Rate Error: 0.014853
+Weight Error: 0.021297
+Estimated Rates (omega_hat):
+[[ 2.76598492 99.83997562]
+ [98.87805907  0.90111219]]
+Estimated Weights (a_k):
+[0.78494094 0.21505906]
+------------------------------
+
+Parameter S = 7
+Rate Error: 0.040497
+Weight Error: 0.031404
+Estimated Rates (omega_hat):
+[[  3.5951143  102.10617248]
+ [ 95.77211817   2.9384859 ]]
+Estimated Weights (a_k):
+[0.7777941 0.2222059]
+------------------------------
+
+Parameter S = 8
+Rate Error: 0.024812
+Weight Error: 0.017399
+Estimated Rates (omega_hat):
+[[  2.98729926 100.61531734]
+ [ 97.67680228   2.60884522]]
+Estimated Weights (a_k):
+[0.78769692 0.21230308]
+------------------------------
+
+Parameter S = 9
+Rate Error: 0.031654
+Weight Error: 0.021328
+Estimated Rates (omega_hat):
+[[  4.01503794 100.3303798 ]
+ [ 96.76722247   1.62579352]]
+Estimated Weights (a_k):
+[0.78491872 0.21508128]
+------------------------------
+
+Parameter S = 10
+Rate Error: 0.035730
+Weight Error: 0.021093
+Estimated Rates (omega_hat):
+[[ 3.60743693 99.77463968]
+ [96.36398649  3.33780296]]
+Estimated Weights (a_k):
+[0.78508535 0.21491465]
+------------------------------
+
+Parameter S = 11
+Rate Error: 0.038300
+Weight Error: 0.014899
+Estimated Rates (omega_hat):
+[[ 0.43159515 98.48546115]
+ [99.60063783  6.15403886]]
+Estimated Weights (a_k):
+[0.78946455 0.21053545]
+------------------------------
+
+Parameter S = 12
+Rate Error: 0.027464
+Weight Error: 0.012832
+Estimated Rates (omega_hat):
+[[  0.75997192  97.2023576 ]
+ [100.84556584   3.54716452]]
+Estimated Weights (a_k):
+[0.79092655 0.20907345]
+------------------------------
+
+Parameter S = 13
+Rate Error: 0.029067
+Weight Error: 0.028952
+Estimated Rates (omega_hat):
+[[  0.4944042  101.63966886]
+ [ 96.9728401    3.18911087]]
+Estimated Weights (a_k):
+[0.77952786 0.22047214]
+------------------------------
+
+Parameter S = 14
+Rate Error: 0.021128
+Weight Error: 0.023810
+Estimated Rates (omega_hat):
+[[  1.1596582  101.90061645]
+ [ 98.80870614   2.96766084]]
+Estimated Weights (a_k):
+[0.78316399 0.21683601]
+------------------------------
+
+Parameter S = 15
+Rate Error: 0.027528
+Weight Error: 0.020086
+Estimated Rates (omega_hat):
+[[ 1.92991404 98.44151328]
+ [98.26692016  3.97665874]]
+Estimated Weights (a_k):
+[0.78579729 0.21420271]
+------------------------------
+
+Parameter S = 16
+Rate Error: 0.013698
+Weight Error: 0.022994
+Estimated Rates (omega_hat):
+[[5.37631632e-03 9.99576194e+01]
+ [1.01423136e+02 1.85836343e+00]]
+Estimated Weights (a_k):
+[0.78374085 0.21625915]
+------------------------------
+
+Parameter S = 17
+Rate Error: 0.021560
+Weight Error: 0.021424
+Estimated Rates (omega_hat):
+[[ 0.10809142 97.39489848]
+ [98.69980162  1.15741171]]
+Estimated Weights (a_k):
+[0.7848512 0.2151488]
+------------------------------
+
+Parameter S = 18
+Rate Error: 0.017532
+Weight Error: 0.021633
+Estimated Rates (omega_hat):
+[[  0.45129899  99.81502569]
+ [102.25962049   1.84062382]]
+Estimated Weights (a_k):
+[0.78470302 0.21529698]
+------------------------------
+
+Parameter S = 19
+Rate Error: 0.050254
+Weight Error: 0.016106
+Estimated Rates (omega_hat):
+[[  5.25901835 102.27674378]
+ [ 94.79345773   0.70968552]]
+Estimated Weights (a_k):
+[0.78861101 0.21138899]
+------------------------------
+--- Testing Parameter: N ---
+
+Parameter N = 1
+Failed: cannot reshape array of size 7 into shape (2,14)
+------------------------------
+
+Parameter N = 2
+Rate Error: 0.828525
+Weight Error: 0.439029
+Estimated Rates (omega_hat):
+[[2.98262994e+01 1.27542393e+02]
+ [4.14630373e-02 4.73593661e+01]]
+Estimated Weights (a_k):
+[0.48955931 0.51044069]
+------------------------------
+
+Parameter N = 3
+Rate Error: 0.712147
+Weight Error: 0.142622
+Estimated Rates (omega_hat):
+[[ 8.51873823 25.31732133]
+ [97.25732121 68.10082485]]
+Estimated Weights (a_k):
+[0.69915125 0.30084875]
+------------------------------
+
+Parameter N = 4
+Rate Error: 0.038501
+Weight Error: 0.020017
+Estimated Rates (omega_hat):
+[[ 0.42618626 97.78842172]
+ [96.60000769  4.58728472]]
+Estimated Weights (a_k):
+[0.78584555 0.21415445]
+------------------------------
+
+Parameter N = 5
+Rate Error: 0.029276
+Weight Error: 0.013839
+Estimated Rates (omega_hat):
+[[  0.87096992  97.92718482]
+ [102.26251329   3.77682283]]
+Estimated Weights (a_k):
+[0.7902141 0.2097859]
+------------------------------
+
+Parameter N = 6
+Rate Error: 0.015463
+Weight Error: 0.014644
+Estimated Rates (omega_hat):
+[[  2.86812192 100.55881009]
+ [ 99.70929271   1.94653539]]
+Estimated Weights (a_k):
+[0.78964537 0.21035463]
+------------------------------
+
+Parameter N = 7
+Rate Error: 0.012498
+Weight Error: 0.022372
+Estimated Rates (omega_hat):
+[[  2.22608854 100.3281401 ]
+ [ 98.76974192   1.00420426]]
+Estimated Weights (a_k):
+[0.7841804 0.2158196]
+------------------------------
+
+Parameter N = 8
+Rate Error: 0.027399
+Weight Error: 0.019987
+Estimated Rates (omega_hat):
+[[ 4.29222913 99.04611168]
+ [98.22719435  1.35247717]]
+Estimated Weights (a_k):
+[0.78586678 0.21413322]
+------------------------------
+
+Parameter N = 9
+Rate Error: 0.008906
+Weight Error: 0.021520
+Estimated Rates (omega_hat):
+[[  1.22081551  99.28362684]
+ [100.15473234   2.00031786]]
+Estimated Weights (a_k):
+[0.78478274 0.21521726]
+------------------------------
+
+Parameter N = 10
+Rate Error: 0.011481
+Weight Error: 0.021770
+Estimated Rates (omega_hat):
+[[  1.96680039 101.11498683]
+ [ 99.59179809   0.45959409]]
+Estimated Weights (a_k):
+[0.78460657 0.21539343]
+------------------------------
+
+Parameter N = 11
+Rate Error: 0.005236
+Weight Error: 0.022143
+Estimated Rates (omega_hat):
+[[  1.4318365   99.76600473]
+ [100.23158399   1.50358342]]
+Estimated Weights (a_k):
+[0.78434244 0.21565756]
+------------------------------
+
+Parameter N = 12
+Rate Error: 0.019762
+Weight Error: 0.021143
+Estimated Rates (omega_hat):
+[[ 3.44471169 99.40649662]
+ [98.81797479  0.70733055]]
+Estimated Weights (a_k):
+[0.78504997 0.21495003]
+------------------------------
+
+Parameter N = 13
+Rate Error: 0.039770
+Weight Error: 0.020962
+Estimated Rates (omega_hat):
+[[ 2.96039991 97.0208003 ]
+ [97.85284297  4.78245687]]
+Estimated Weights (a_k):
+[0.78517787 0.21482213]
+------------------------------
+
+Parameter N = 14
+Rate Error: 0.007719
+Weight Error: 0.019471
+Estimated Rates (omega_hat):
+[[  2.03914752 100.21617237]
+ [ 99.81710153   1.17841609]]
+Estimated Weights (a_k):
+[0.78623164 0.21376836]
+------------------------------
+
+Parameter N = 15
+Rate Error: 0.021739
+Weight Error: 0.022142
+Estimated Rates (omega_hat):
+[[ 3.17616023 99.17342347]
+ [98.49778303  2.33312061]]
+Estimated Weights (a_k):
+[0.78434353 0.21565647]
+------------------------------
+
+Parameter N = 16
+Rate Error: 0.031511
+Weight Error: 0.027872
+Estimated Rates (omega_hat):
+[[ 3.80707623 98.52708724]
+ [97.41668741  2.77142961]]
+Estimated Weights (a_k):
+[0.78029149 0.21970851]
+------------------------------
+
+Parameter N = 17
+Rate Error: 0.011359
+Weight Error: 0.020461
+Estimated Rates (omega_hat):
+[[  2.05010161 100.17092956]
+ [ 98.80388237   0.86594315]]
+Estimated Weights (a_k):
+[0.78553213 0.21446787]
+------------------------------
+
+Parameter N = 18
+Rate Error: 0.038526
+Weight Error: 0.012772
+Estimated Rates (omega_hat):
+[[ 4.1739961  97.97528865]
+ [96.7096212   3.16510148]]
+Estimated Weights (a_k):
+[0.79096866 0.20903134]
+------------------------------
+
+Parameter N = 19
+Rate Error: 0.006382
+Weight Error: 0.018914
+Estimated Rates (omega_hat):
+[[  1.68403444 100.06146021]
+ [ 99.42821877   1.12695563]]
+Estimated Weights (a_k):
+[0.78662601 0.21337399]
+------------------------------
+--- Testing Parameter: delta ---
+
+Parameter delta = 0.0005
+Rate Error: 1.757679
+Weight Error: 0.263571
+Estimated Rates (omega_hat):
+[[ 33.20436536 226.95211135]
+ [ 74.17362349 130.40572818]]
+Estimated Weights (a_k):
+[0.01362746 0.98637254]
+------------------------------
+
+Parameter delta = 0.001
+Rate Error: 1.743675
+Weight Error: 0.019899
+Estimated Rates (omega_hat):
+[[172.11134749 120.6358946 ]
+ [274.96557971  23.27662245]]
+Estimated Weights (a_k):
+[0.78592929 0.21407071]
+------------------------------
+
+Parameter delta = 0.0015
+Rate Error: 1.004155
+Weight Error: 0.204804
+Estimated Rates (omega_hat):
+[[118.31137109 118.81436687]
+ [ 11.04883848  23.5013114 ]]
+Estimated Weights (a_k):
+[0.34481839 0.65518161]
+------------------------------
+
+Parameter delta = 0.002
+Rate Error: 1.304277
+Weight Error: 0.164968
+Estimated Rates (omega_hat):
+[[157.69376047 166.73083451]
+ [ 49.83215189  70.90832611]]
+Estimated Weights (a_k):
+[0.08334981 0.91665019]
+------------------------------
+
+Parameter delta = 0.0025
+Rate Error: 0.230977
+Weight Error: 0.122663
+Estimated Rates (omega_hat):
+[[ 8.37422984 74.79064516]
+ [97.8740842  20.30562983]]
+Estimated Weights (a_k):
+[0.88673611 0.11326389]
+------------------------------
+
+Parameter delta = 0.003
+Rate Error: 0.572819
+Weight Error: 0.370079
+Estimated Rates (omega_hat):
+[[ 53.38012325 129.61173689]
+ [ 54.03637292  29.80817917]]
+Estimated Weights (a_k):
+[0.53831462 0.46168538]
+------------------------------
+
+Parameter delta = 0.0035
+Rate Error: 0.367913
+Weight Error: 0.166491
+Estimated Rates (omega_hat):
+[[  1.46678137  61.48387153]
+ [106.89056297  35.2968364 ]]
+Estimated Weights (a_k):
+[0.91772708 0.08227292]
+------------------------------
+
+Parameter delta = 0.004
+Rate Error: 0.166527
+Weight Error: 0.060299
+Estimated Rates (omega_hat):
+[[18.59753749 92.54389289]
+ [86.73797064  4.67898813]]
+Estimated Weights (a_k):
+[0.8426377 0.1573623]
+------------------------------
+
+Parameter delta = 0.0045000000000000005
+Rate Error: 0.038414
+Weight Error: 0.005545
+Estimated Rates (omega_hat):
+[[ 5.10862795 97.30229104]
+ [98.36680753  2.64002461]]
+Estimated Weights (a_k):
+[0.79607882 0.20392118]
+------------------------------
+
+Parameter delta = 0.005000000000000001
+Rate Error: 0.023424
+Weight Error: 0.028754
+Estimated Rates (omega_hat):
+[[  2.77134179 102.40187269]
+ [ 98.57303024   1.17778395]]
+Estimated Weights (a_k):
+[0.77966798 0.22033202]
+------------------------------
+
+Parameter delta = 0.0055
+Rate Error: 0.212015
+Weight Error: 0.057161
+Estimated Rates (omega_hat):
+[[ 18.17238432 113.85908015]
+ [ 85.41494978  15.12116192]]
+Estimated Weights (a_k):
+[0.75958142 0.24041858]
+------------------------------
+
+Parameter delta = 0.006
+Rate Error: 0.067263
+Weight Error: 0.002737
+Estimated Rates (omega_hat):
+[[  7.64531668 104.2415629 ]
+ [ 94.70132139   1.51848563]]
+Estimated Weights (a_k):
+[0.79806463 0.20193537]
+------------------------------
+
+Parameter delta = 0.006500000000000001
+Rate Error: 0.056031
+Weight Error: 0.021538
+Estimated Rates (omega_hat):
+[[  1.61445017  95.21949758]
+ [103.3383508    6.33107968]]
+Estimated Weights (a_k):
+[0.78477024 0.21522976]
+------------------------------
+
+Parameter delta = 0.007000000000000001
+Rate Error: 0.087110
+Weight Error: 0.022821
+Estimated Rates (omega_hat):
+[[  9.83411074 101.15421754]
+ [ 91.52141455   0.28083055]]
+Estimated Weights (a_k):
+[0.78386284 0.21613716]
+------------------------------
+
+Parameter delta = 0.0075
+Rate Error: 0.031556
+Weight Error: 0.027357
+Estimated Rates (omega_hat):
+[[  4.44251001 101.46982714]
+ [ 97.73735973   0.11322632]]
+Estimated Weights (a_k):
+[0.78065542 0.21934458]
+------------------------------
+
+Parameter delta = 0.008
+Rate Error: 0.031550
+Weight Error: 0.016162
+Estimated Rates (omega_hat):
+[[  4.30205051 100.33430693]
+ [ 97.09391267   1.67004149]]
+Estimated Weights (a_k):
+[0.78857169 0.21142831]
+------------------------------
+
+Parameter delta = 0.0085
+Rate Error: 0.005951
+Weight Error: 0.022847
+Estimated Rates (omega_hat):
+[[  1.18733666 100.67028928]
+ [100.16787004   0.55748303]]
+Estimated Weights (a_k):
+[0.78384466 0.21615534]
+------------------------------
+
+Parameter delta = 0.009000000000000001
+Rate Error: 0.031502
+Weight Error: 0.014774
+Estimated Rates (omega_hat):
+[[  0.92891589  97.43676154]
+ [102.59496637   3.55748706]]
+Estimated Weights (a_k):
+[0.78955304 0.21044696]
+------------------------------
+
+Parameter delta = 0.009500000000000001
+Rate Error: 0.015189
+Weight Error: 0.020790
+Estimated Rates (omega_hat):
+[[  0.18378048  99.12373773]
+ [101.69378543   0.44178642]]
+Estimated Weights (a_k):
+[0.78529896 0.21470104]
+------------------------------
+
+Parameter delta = 0.01
+Rate Error: 0.032360
+Weight Error: 0.018396
+Estimated Rates (omega_hat):
+[[ 1.59963354 98.61578192]
+ [98.07630867  4.86903315]]
+Estimated Weights (a_k):
+[0.78699172 0.21300828]
+------------------------------
+
+Parameter delta = 0.0105
+Rate Error: 0.024641
+Weight Error: 0.020749
+Estimated Rates (omega_hat):
+[[ 1.02499111 99.89647123]
+ [99.27410958  4.40676799]]
+Estimated Weights (a_k):
+[0.78532837 0.21467163]
+------------------------------
+
+Parameter delta = 0.011000000000000001
+Rate Error: 0.038552
+Weight Error: 0.009877
+Estimated Rates (omega_hat):
+[[ 4.39533253 97.3096396 ]
+ [99.46823274  4.26790836]]
+Estimated Weights (a_k):
+[0.79301615 0.20698385]
+------------------------------
+
+Parameter delta = 0.0115
+Rate Error: 0.034164
+Weight Error: 0.017304
+Estimated Rates (omega_hat):
+[[  1.5354511   97.75322295]
+ [102.93388263   4.06660805]]
+Estimated Weights (a_k):
+[0.78776424 0.21223576]
+------------------------------
+
+Parameter delta = 0.012
+Rate Error: 0.028531
+Weight Error: 0.014025
+Estimated Rates (omega_hat):
+[[ 0.71531857 98.31127679]
+ [99.08478961  4.53714558]]
+Estimated Weights (a_k):
+[0.79008291 0.20991709]
+------------------------------
+
+Parameter delta = 0.0125
+Rate Error: 0.021502
+Weight Error: 0.019611
+Estimated Rates (omega_hat):
+[[  0.90802046  99.09695272]
+ [101.02233561   3.71628217]]
+Estimated Weights (a_k):
+[0.78613322 0.21386678]
+------------------------------
+
+Parameter delta = 0.013000000000000001
+Rate Error: 0.004437
+Weight Error: 0.022781
+Estimated Rates (omega_hat):
+[[ 1.5688385  99.93574221]
+ [99.75555765  1.07939714]]
+Estimated Weights (a_k):
+[0.78389141 0.21610859]
+------------------------------
+
+Parameter delta = 0.013500000000000002
+Rate Error: 0.011688
+Weight Error: 0.022469
+Estimated Rates (omega_hat):
+[[ 2.45825205 99.46215374]
+ [99.47028273  1.18979816]]
+Estimated Weights (a_k):
+[0.78411189 0.21588811]
+------------------------------
+
+Parameter delta = 0.014
+Rate Error: 0.013007
+Weight Error: 0.022865
+Estimated Rates (omega_hat):
+[[  2.20835173 101.07975864]
+ [100.02776158   1.87032914]]
+Estimated Weights (a_k):
+[0.78383219 0.21616781]
+------------------------------
+
+Parameter delta = 0.0145
+Rate Error: 0.013366
+Weight Error: 0.022174
+Estimated Rates (omega_hat):
+[[  1.61057038  99.04135737]
+ [100.68914893   2.34406748]]
+Estimated Weights (a_k):
+[0.78432028 0.21567972]
+------------------------------
+
+Parameter delta = 0.015000000000000001
+Rate Error: 0.006552
+Weight Error: 0.021835
+Estimated Rates (omega_hat):
+[[  0.72729854 100.64322952]
+ [100.40914078   0.54933953]]
+Estimated Weights (a_k):
+[0.78456023 0.21543977]
+------------------------------
+
+Parameter delta = 0.0155
+Rate Error: 0.007594
+Weight Error: 0.022180
+Estimated Rates (omega_hat):
+[[  1.16944786  99.67020553]
+ [100.854722     1.53442757]]
+Estimated Weights (a_k):
+[0.78431602 0.21568398]
+------------------------------
+
+Parameter delta = 0.016
+Rate Error: 0.009281
+Weight Error: 0.021783
+Estimated Rates (omega_hat):
+[[  0.81294077  99.57061109]
+ [101.01294239   1.69091297]]
+Estimated Weights (a_k):
+[0.78459719 0.21540281]
+------------------------------
+
+Parameter delta = 0.0165
+Rate Error: 3.163849
+Weight Error: 0.258311
+Estimated Rates (omega_hat):
+[[  1.51230179  98.8981928 ]
+ [133.37973141 447.20981886]]
+Estimated Weights (a_k):
+[0.98265374 0.01734626]
+------------------------------
+
+Parameter delta = 0.017
+Rate Error: 0.005596
+Weight Error: 0.021652
+Estimated Rates (omega_hat):
+[[  1.02309515 100.12364744]
+ [100.12650007   1.77112311]]
+Estimated Weights (a_k):
+[0.78468978 0.21531022]
+------------------------------
+
+Parameter delta = 0.0175
+Rate Error: 3.579745
+Weight Error: 0.275604
+Estimated Rates (omega_hat):
+[[  2.79678335  99.1735297 ]
+ [203.80957281 496.51673377]]
+Estimated Weights (a_k):
+[0.99488158 0.00511842]
+------------------------------
+
+Parameter delta = 0.018000000000000002
+Rate Error: 0.007516
+Weight Error: 0.022026
+Estimated Rates (omega_hat):
+[[  1.54043705 100.90846257]
+ [ 99.91345221   0.92876938]]
+Estimated Weights (a_k):
+[0.78442531 0.21557469]
+------------------------------
+
+Parameter delta = 0.018500000000000003
+Rate Error: 0.012773
+Weight Error: 0.020920
+Estimated Rates (omega_hat):
+[[  1.56593749 100.35155368]
+ [ 99.78633823   2.66545962]]
+Estimated Weights (a_k):
+[0.78520721 0.21479279]
+------------------------------
+
+Parameter delta = 0.019
+Rate Error: 0.994346
+Weight Error: 0.267112
+Estimated Rates (omega_hat):
+[[  1.41079005 100.67412774]
+ [103.7697116  141.57603906]]
+Estimated Weights (a_k):
+[0.98887641 0.01112359]
+------------------------------
+
+Parameter delta = 0.0195
+Rate Error: 1.461185
+Weight Error: 0.387170
+Estimated Rates (omega_hat):
+[[180.98373492 168.76605582]
+ [ 23.97468738  13.54840194]]
+Estimated Weights (a_k):
+[0.47377069 0.52622931]
+------------------------------

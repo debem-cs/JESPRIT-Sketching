@@ -12,21 +12,22 @@ def test_jesprit():
         [1,  100]   # "investment"
     ])
 
-    z_1 = np.array([[1], [0]]) 
+    z_1 = np.array([[1], [1]]) 
     z_2 = np.array([[0], [1]])
     
     z = np.hstack([z_1, z_2]) 
-    r= np.size(z, 1)
+    r = np.size(z, 1)
+
+    # Calculate the true lambda rates for each component
+    lambdas_true = A @ z
 
     pi = np.array([0.2, 0.8])
     
     n_samples = 1000
-    delta = 0.01
+    delta = 1/np.max(lambdas_true)
     
     d, m = A.shape
 
-    # Calculate the true lambda rates for each component
-    lambdas_true = A @ z
     print("True component rates (lambda_k):")
     for k in range(lambdas_true.shape[1]):
         print(f"  Component {k+1}:\n{lambdas_true[:, k]}")
@@ -35,9 +36,9 @@ def test_jesprit():
     X, _ = generate_mixed_poisson_samples(A, pi, z, n_samples)
     
     # Sampling parameters for JESPRIT
-    M = 10  # Number of directions (>= d)
-    S = 10   # Number of snapshots (>= r)
-    N = 10   # Number of samples per line (>= r + 1)
+    M = d + 5  # Number of directions (>= d)
+    S = r + 5  # Number of snapshots (>= r)
+    N = r + 5  # Number of samples per line (>= r + 1)
     
     all_Z, U_directions, p_base_points = sample_PGF(X, M, S, N, delta)
 

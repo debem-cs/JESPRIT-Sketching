@@ -49,17 +49,22 @@ def evaluate_parameters():
     z = np.hstack([z_1, z_2]) 
     pi = np.array([0.2, 0.8])
     
+    d, _ = A.shape
+    r = np.size(z, 1)
+
     n_samples = 1000
     
     # Generate data
     X, lambda_true = generate_mixed_poisson_samples(A, pi, z, n_samples)
-    
+
+    delta = float(1/np.max(lambda_true))
+
     # Default parameters
     default_params = {
-        'M': 10,
-        'S': 10,
-        'N': 10,
-        'delta': 0.01
+        'M': d + 5,
+        'S': r + 5,
+        'N': r + 5,
+        'delta': delta
     }
     
     # Ranges to test
@@ -75,10 +80,16 @@ def evaluate_parameters():
     
     print("Evaluating parameters...")
     
+    # Ensure log directory exists
+    import os
+    if not os.path.exists("log"):
+        os.makedirs("log")
+
     # Open results file
-    with open("evaluation_results.txt", "w") as f:
+    with open("log/parameter_evaluation.txt", "w") as f:
         f.write("Evaluation Results\n")
         f.write("==================\n\n")
+        f.write(f"Default Parameters:\n{default_params}\n\n")
         f.write(f"Ground Truth Rates (Lambda):\n{lambda_true}\n")
         f.write(f"Ground Truth Weights (Pi):\n{pi}\n\n")
 
@@ -137,6 +148,7 @@ def evaluate_parameters():
 
     # Plot results
     fig, axes = plt.subplots(2, 2, figsize=(14, 10))
+    fig.suptitle(f"Parameter Evaluation\nDefaults: {default_params}", fontsize=12)
     axes = axes.flatten()
     
     for i, (param_name, (values, rate_errors, weight_errors)) in enumerate(results.items()):
@@ -150,8 +162,9 @@ def evaluate_parameters():
         ax.grid(True)
         
     plt.tight_layout()
-    plt.savefig("parameter_evaluation.png")
-    print("\nEvaluation complete. Results saved to parameter_evaluation.png")
+    plt.subplots_adjust(top=0.90) # Adjust layout to make room for suptitle
+    plt.savefig("log/parameter_evaluation.png")
+    print("\nEvaluation complete. Results saved to log/parameter_evaluation.png")
 
 if __name__ == "__main__":
     evaluate_parameters()

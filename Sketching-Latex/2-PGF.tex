@@ -55,7 +55,7 @@ where $\boldsymbol{\lambda}_k = \mathbf{A}\mathbf{z}_k$ is the vector of Poisson
 
 \section{Sampling Strategy}
 
-We sample the Probability-Generating Function (PGF) along complex directions $\mathbf{u}$, scaled by a factor $\Delta$ to ensure numerical stability. We define the sampling points $\mathbf{t} \in \mathbb{C}^d$ as:
+We sample the Probability-Generating Function (PGF) along complex directions $\mathbf{u}$, scaled by a factor $\Delta$ that is around $1/\lambda_{max}$ (highest poisson rate give by $\textbf{Az}$). We define the sampling points $\mathbf{t} \in \mathbb{C}^d$ as:
 
 $$
 \mathbf{t} = \mathbf{1}_d + j \Delta \mathbf{u}
