@@ -123,8 +123,8 @@ def evaluate_parameters():
                     )
                     
                     rate_error, weight_error = compute_error(lambda_true, pi, omega_hat, a_k)
-                    rate_errors.append(rate_error)
-                    weight_errors.append(weight_error)
+                    rate_errors.append(rate_error * 100)
+                    weight_errors.append(weight_error * 100)
                     
                     print(f"  {param_name}={val}: Rate Error={rate_error:.4f}, Weight Error={weight_error:.4f}")
                     
@@ -157,7 +157,8 @@ def evaluate_parameters():
         ax.plot(values, weight_errors, marker='s', label='Weight Error')
         ax.set_title(f"Effect of {param_name}")
         ax.set_xlabel(param_name)
-        ax.set_ylabel("Estimation Error")
+        ax.set_ylabel("Estimation Error (%)")
+        ax.set_ylim(0, 120)
         ax.legend()
         ax.grid(True)
         
