@@ -62,30 +62,48 @@ def sample_PGF(X, M, S, N, delta):
     U_directions = np.random.randn(M, d)
     
     # Normalize each direction vector to have a unit norm.
-    for i in range(M):
-        norm = np.linalg.norm(U_directions[i,:])
-        if norm > 1e-10:
-            U_directions[i,:] /= norm
+    norms = np.linalg.norm(U_directions, axis=1, keepdims=True)
+    U_directions = np.where(norms > 1e-10, U_directions / norms, U_directions)
 
     # Generate base points
     p_base_points = np.random.randn(M, S, d)
 
-    all_Z = []
-    for l in range(M):
-        # Z_l has shape (N, S)
-        Z_l = np.zeros((N, S), dtype=np.complex128)
-        for s in range(S):
-            for n in range(N):
-                # Define the point 'u' in the complex domain
-                # We scale the step 'n' by 'scale' (equivalent to Delta in the paper)
-                u = p_base_points[l, s, :] + n * U_directions[l, :]
-                
-                # Map 'u' to the PGF argument 't'
-                # t = 1 + i*u
-                t = np.ones(d) + 1j * delta*u
-                
-                # Sample the PGF at this point
-                Z_l[n, s] = PGF(X, t)
-        all_Z.append(Z_l)
+    # Pre-compute n vector for broadcasting
+    # shape (1, N, 1, 1)
+    n_vec = np.arange(N).reshape(1, N, 1, 1)
+    
+    # Reshape U_directions for broadcasting: (M, 1, 1, d)
+    U_reshaped = U_directions.reshape(M, 1, 1, d)
+    
+    # Reshape p_base_points for broadcasting: (M, 1, S, d)
+    P_reshaped = p_base_points.reshape(M, 1, S, d)
+    
+    # u: shape (M, N, S, d)
+    # Broadcasting: (1, N, 1, 1) * (M, 1, 1, d) + (M, 1, S, d) -> (M, N, S, d)
+    u = n_vec * U_reshaped + P_reshaped
+    
+    # t: shape (M, N, S, d)
+    t = 1.0 + 1j * delta * u
+    
+    # log_t: shape (M, N, S, d)
+    log_t = np.log(t)
+    
+    # Transpose X for matrix multiplication: (d, n_samples)
+    X_T = X.T
+    
+    # Compute dot product with data
+    # log_t is (M, N, S, d), X_T is (d, n_samples)
+    # Result is (M, N, S, n_samples)
+    dot_product = log_t @ X_T
+    
+    # Exponentiate
+    exp_values = np.exp(dot_product)
+    
+    # Mean over samples (axis 3)
+    # Z_all_array: shape (M, N, S)
+    Z_all_array = np.mean(exp_values, axis=3)
+    
+    # Convert to list of (N, S) arrays
+    all_Z = [Z_all_array[l] for l in range(M)]
         
     return all_Z, U_directions, p_base_points
