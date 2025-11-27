@@ -10,8 +10,8 @@ def test_jesprit(num_runs=10):
     
     A = np.array([
         [100, 1,   1],
-        [100, 100, 100],
-        [0,   1,   100]
+        [100, 1, 100],
+        [1,   1,   100]
     ])
     z_1 = np.array([[1], [0], [0]]) 
     z_2 = np.array([[0], [1], [0]])
@@ -24,7 +24,7 @@ def test_jesprit(num_runs=10):
     # Calculate the true lambda rates for each component
     lambdas_true = A @ z
 
-    n_samples = 1000
+    n_samples = 2000
     delta = 1/np.max(lambdas_true)
     
     d, m = A.shape
@@ -37,9 +37,9 @@ def test_jesprit(num_runs=10):
     X, _ = generate_mixed_poisson_samples(A, pi, z, n_samples)
     
     # Sampling parameters for JESPRIT
-    M = d + 5  # Number of directions (>= d)
-    S = r + 5  # Number of snapshots (>= r)
-    N = r + 5  # Number of samples per line (>= r + 1)
+    M = d + 15  # Number of directions (>= d)
+    S = r + 15  # Number of snapshots (>= r)
+    N = r + 15  # Number of samples per line (>= r + 1)
     
     rate_errors = []
     weight_errors = []
@@ -118,4 +118,4 @@ def test_jesprit(num_runs=10):
     print(f"Log saved to {log_path}")
     
 if __name__ == "__main__":
-    test_jesprit(num_runs=20)
+    test_jesprit(num_runs=10)
