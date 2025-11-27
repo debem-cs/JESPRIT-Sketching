@@ -7,18 +7,20 @@ from dataset_gen import generate_mixed_poisson_samples
 def evaluate_parameters():
     # Ground truth parameters
     A = np.array([
-        [100, 1],
-        [1,  100]
+        [100, 1,  1],
+        [1,  100, 1],
+        [1,   1, 100]
     ])
-    z_1 = np.array([[1], [0]]) 
-    z_2 = np.array([[0], [1]])
-    z = np.hstack([z_1, z_2]) 
-    pi = np.array([0.2, 0.8])
+    z_1 = np.array([[1], [0], [0]]) 
+    z_2 = np.array([[0], [1], [0]])
+    z_3 = np.array([[0], [0], [1]])
+    z = np.hstack([z_1, z_2, z_3]) 
+    pi = np.array([0.2, 0.1, 0.7])
     
     d, _ = A.shape
     r = np.size(z, 1)
 
-    n_samples = 1000
+    n_samples = 2000
     
     # Generate data
     X, lambda_true = generate_mixed_poisson_samples(A, pi, z, n_samples)
@@ -89,8 +91,8 @@ def evaluate_parameters():
                     )
                     
                     rate_error, weight_error = compute_error(lambda_true, pi, omega_hat, a_k)
-                    rate_errors.append(rate_error * 100)
-                    weight_errors.append(weight_error * 100)
+                    rate_errors.append(rate_error)
+                    weight_errors.append(weight_error)
                     
                     print(f"  {param_name}={val}: Rate Error={rate_error:.4f}, Weight Error={weight_error:.4f}")
                     
@@ -118,15 +120,28 @@ def evaluate_parameters():
     axes = axes.flatten()
     
     for i, (param_name, (values, rate_errors, weight_errors)) in enumerate(results.items()):
-        ax = axes[i]
-        ax.plot(values, rate_errors, marker='o', label='Rate Error')
-        ax.plot(values, weight_errors, marker='s', label='Weight Error')
-        ax.set_title(f"Effect of {param_name}")
-        ax.set_xlabel(param_name)
-        ax.set_ylabel("Estimation Error (%)")
-        ax.set_ylim(0, 120)
-        ax.legend()
-        ax.grid(True)
+        ax1 = axes[i]
+        
+        # Plot Rate Error on primary y-axis (left)
+        color = 'tab:blue'
+        l1 = ax1.plot(values, rate_errors, marker='o', color=color, label='Rate Error')
+        ax1.set_xlabel(param_name)
+        ax1.set_ylabel("Rate Error", color=color)
+        ax1.tick_params(axis='y', labelcolor=color)
+        ax1.set_title(f"Effect of {param_name}")
+        ax1.grid(True)
+        
+        # Create secondary y-axis (right) for Weight Error
+        ax2 = ax1.twinx()
+        color = 'tab:orange'
+        l2 = ax2.plot(values, weight_errors, marker='s', color=color, label='Weight Error')
+        ax2.set_ylabel("Weight Error", color=color)
+        ax2.tick_params(axis='y', labelcolor=color)
+        
+        # Combine legends
+        lns = l1 + l2
+        labs = [l.get_label() for l in lns]
+        ax1.legend(lns, labs, loc='upper right')
         
     plt.tight_layout()
     plt.subplots_adjust(top=0.90) # Adjust layout to make room for suptitle
