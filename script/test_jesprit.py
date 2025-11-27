@@ -9,15 +9,15 @@ def test_jesprit(num_runs=10):
     # --- 1. Define Parameters (Based on PDF Example 1.1) ---
     
     A = np.array([
-        [100, 1,  1],
-        [100,  100, 1],
-        [1,   1, 100]
+        [100, 1,   1],
+        [100, 100, 100],
+        [0,   1,   100]
     ])
     z_1 = np.array([[1], [0], [0]]) 
     z_2 = np.array([[0], [1], [0]])
     z_3 = np.array([[0], [0], [1]])
     z = np.hstack([z_1, z_2, z_3]) 
-    pi = np.array([0.2, 0.1, 0.7])
+    pi = np.array([0.7, 0.2, 0.1])
 
     r = np.size(z, 1)
 
@@ -112,7 +112,7 @@ def test_jesprit(num_runs=10):
             f.write(f"--- Run {i+1} ---\n")
             f.write(f"Rate Error: {rate_errors[i]:.6f}\n")
             f.write(f"Weight Error: {weight_errors[i]:.6f}\n")
-            f.write(f"Estimated Rates (omega_hat):\n{omega_hats[i]}\n")
+            f.write(f"Estimated Rates (omega_hat):\n{omega_hats[i].T}\n")
             f.write(f"Estimated Weights (a_k):\n{a_ks[i]}\n")
             f.write("-" * 30 + "\n")
     print(f"Log saved to {log_path}")
