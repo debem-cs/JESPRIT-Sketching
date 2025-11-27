@@ -132,7 +132,7 @@ def compute_error(lambda_true, pi_true, lambda_est, pi_est):
         lambda_est_perm = lambda_est[perm, :].T
         
         # Error in rates (normalized)
-        rate_error = np.linalg.norm(lambda_true - lambda_est_perm) / np.linalg.norm(lambda_true)
+        rate_error = np.linalg.norm((lambda_true - lambda_est_perm) / lambda_true)
         
         # Error in weights
         weight_error = np.linalg.norm(pi_true - pi_est[perm])
