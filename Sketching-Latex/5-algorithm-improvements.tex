@@ -3,9 +3,17 @@
 \subsection{Issue Identification: Component Mixing and Basis Mismatch}
 During the evaluation of the JESPRIT algorithm, a significant issue was observed where the estimated rates ($\bm{\lambda}$) exhibited "mass stealing" between components. For example, in a scenario with true rates of 100 and 100, the algorithm would consistently estimate approximately 75 and 126. This systematic error persisted even with a large number of samples, indicating a bias rather than variance.
 
-The root cause was identified in the Joint Diagonalization step. The standard JESPRIT formulation employs a joint diagonalization algorithm (typically based on Jacobi rotations) that explicitly searches for a unitary matrix $\bm{V}$ (i.e., $\bm{V}\bm{V}^H = \bm{I}$) to simultaneously diagonalize the set of Rotational Invariance Matrices $\bm{\Psi}_l$.
+The root cause was identified in the interaction between the subspace estimation and the Joint Diagonalization step. Theoretical derivations of JESPRIT often assume a single global signal subspace. However, the practical implementation estimates the signal subspace $\bm{U}_s^{(l)}$ independently for each direction $l$ using the specific data slice corresponding to that direction.
 
-However, in the general case of mixed Poisson estimation, especially when the steering vectors are not orthogonal or the components are correlated, the true diagonalizing matrix $\bm{T}$ (which relates the signal subspace to the canonical basis) is not necessarily unitary. Since the standard algorithm is constrained to the manifold of unitary matrices, it cannot recover the correct non-unitary transformation $\bm{T}$. Instead, it finds the "closest" unitary approximation, which results in a compromised solution that effectively "mixes" the components, leading to the observed bias and "mass stealing".
+Because of finite sample noise and the random nature of the projections, these estimated subspaces $\bm{U}_s^{(l)}$ differ slightly but significantly across directions. Consequently, the Rotational Invariance Matrices $\bm{\Psi}_l$ are defined in different bases (different coordinate systems).
+
+This creates two fundamental problems for the standard joint diagonalization approach:
+\begin{enumerate}
+    \item \textbf{Basis Mismatch:} Since the matrices do not share a common basis (eigenvectors), they are not simultaneously diagonalizable. Commutator checks confirmed that $\|\bm{\Psi}_i \bm{\Psi}_j - \bm{\Psi}_j \bm{\Psi}_i\| \gg 0$.
+    \item \textbf{Non-Unitary Diagonalizer:} Even if they shared a basis, the true diagonalizing transformation is not necessarily unitary in the general case, whereas standard algorithms like Jacobi rotations are constrained to unitary matrices.
+\end{enumerate}
+
+The combination of these factors means that forcing a single unitary matrix to diagonalize all $\bm{\Psi}_l$ results in a compromise solution that "mixes" the components, leading to the observed "mass stealing" bias.
 
 \subsection{Proposed Solution: Brute-Force Eigenvalue Matching}
 To resolve this, we replaced the joint diagonalization approach with a Brute-Force Eigenvalue Matching strategy. This method acknowledges that while the eigenvectors may differ across directions, the eigenvalues (which contain the frequency information) are intrinsic to the underlying components.
