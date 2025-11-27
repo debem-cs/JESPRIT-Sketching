@@ -36,14 +36,13 @@ def evaluate_parameters():
     }
     
     # Ranges to test
-    # Define start, stop, step for each parameter
     param_ranges = {
-        'M': np.arange(1, 20, 1),      # 5, 10, ..., 50
-        'S': np.arange(1, 20, 1),      # 5, 10, ..., 50
-        'N': np.arange(1, 20, 1),      # 5, 10, ..., 50
-        'delta': np.arange(0.0005, 0.02, 0.0005) # 0.005, 0.01, ..., 0.1
+        'M': np.linspace(1, 40, 40, dtype=int),
+        'S': np.linspace(1, 40, 40, dtype=int),
+        'N': np.linspace(1, 40, 40, dtype=int),
+        'delta': np.linspace(0.001, 0.02, 40)
     }
-    
+
     results = {}
     
     print("Evaluating parameters...")
