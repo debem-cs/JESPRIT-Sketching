@@ -1,27 +1,29 @@
 import numpy as np
+import matplotlib.pyplot as plt
+import os
 from dataset_gen import generate_mixed_poisson_samples
 from pgf import sample_PGF
 from jesprit import jesprit, compute_error
 
-def test_jesprit():   
+def test_jesprit(num_runs=10):   
     # --- 1. Define Parameters (Based on PDF Example 1.1) ---
     
     A = np.array([
-        [100, 1],
-        [1,  100]
+        [100, 1,  1],
+        [100,  100, 1],
+        [1,   1, 100]
     ])
+    z_1 = np.array([[1], [0], [0]]) 
+    z_2 = np.array([[0], [1], [0]])
+    z_3 = np.array([[0], [0], [1]])
+    z = np.hstack([z_1, z_2, z_3]) 
+    pi = np.array([0.2, 0.1, 0.7])
 
-    z_1 = np.array([[1], [0]]) 
-    z_2 = np.array([[0], [1]])
-    
-    z = np.hstack([z_1, z_2]) 
     r = np.size(z, 1)
 
     # Calculate the true lambda rates for each component
     lambdas_true = A @ z
 
-    pi = np.array([0.2, 0.8])
-    
     n_samples = 1000
     delta = 1/np.max(lambdas_true)
     
@@ -39,23 +41,81 @@ def test_jesprit():
     S = r + 5  # Number of snapshots (>= r)
     N = r + 5  # Number of samples per line (>= r + 1)
     
-    all_Z, U_directions, p_base_points = sample_PGF(X, M, S, N, delta)
+    rate_errors = []
+    weight_errors = []
+    omega_hats = []
+    a_ks = []
 
-    omega_hat, a_k = jesprit(
-        all_Z, r, U_directions, p_base_points, delta
-    )
-    
-    print("\n--- JESPRIT Results ---")
-    # omega_hat has shape (r, d), so each row is an estimated lambda.
-    # We iterate through the rows to print each component's estimated rate vector.
-    print("Estimated component rates (lambda_hat):")
-    for k in range(omega_hat.shape[0]):
-        print(f"  Component {k+1}:\n{omega_hat[k, :]}")
-    print("\nEstimated latent factors probabilities (pi_hat):\n", a_k)
+    print(f"\nRunning JESPRIT {num_runs} times on the same dataset...")
 
-    rate_error, weight_error = compute_error(lambdas_true, pi, omega_hat, a_k)
-    print(f"\nRate Error: {100*rate_error:.2f}%")
-    print(f"Weight Error: {100*weight_error:.2f}%")
+    for i in range(num_runs):
+        all_Z, U_directions, p_base_points = sample_PGF(X, M, S, N, delta)
+
+        omega_hat, a_k = jesprit(
+            all_Z, r, U_directions, p_base_points, delta
+        )
+        
+        rate_error, weight_error = compute_error(lambdas_true, pi, omega_hat, a_k)
+        rate_errors.append(rate_error)
+        weight_errors.append(weight_error)
+        omega_hats.append(omega_hat)
+        a_ks.append(a_k)
+        # print(f"Run {i+1}: Rate Error = {rate_error:.4f}, Weight Error = {weight_error:.4f}")
+
+    # --- Analysis & Plotting ---
+    avg_rate_error = np.mean(rate_errors)
+    std_rate_error = np.std(rate_errors)
+    avg_weight_error = np.mean(weight_errors)
+    std_weight_error = np.std(weight_errors)
+
+    print("\n--- Summary Statistics ---")
+    print(f"Rate Error: Mean = {avg_rate_error:.4f}, Std = {std_rate_error:.4f}")
+    print(f"Weight Error: Mean = {avg_weight_error:.4f}, Std = {std_weight_error:.4f}")
+
+    # Ensure log directory exists
+    log_dir = "log"
+    os.makedirs(log_dir, exist_ok=True)
+
+    # Plotting
+    fig, ax1 = plt.subplots(figsize=(10, 6))
+
+    color = 'tab:blue'
+    ax1.set_xlabel('Run Index')
+    ax1.set_ylabel('Rate Error', color=color)
+    ax1.plot(range(1, num_runs + 1), rate_errors, marker='o', linestyle='-', color=color, label='Rate Error')
+    ax1.tick_params(axis='y', labelcolor=color)
+    ax1.grid(True)
+
+    ax2 = ax1.twinx()  # instantiate a second axes that shares the same x-axis
+
+    color = 'tab:orange'
+    ax2.set_ylabel('Weight Error', color=color)  # we already handled the x-label with ax1
+    ax2.plot(range(1, num_runs + 1), weight_errors, marker='s', linestyle='-', color=color, label='Weight Error')
+    ax2.tick_params(axis='y', labelcolor=color)
+
+    plt.title('JESPRIT Estimation Errors across Runs')
+    fig.tight_layout()  # otherwise the right y-label is slightly clipped
+    plot_path = os.path.join(log_dir, "test_jesprit.png")
+    plt.savefig(plot_path)
+    print(f"\nPlot saved to {plot_path}")
+
+    # Save logs
+    log_path = os.path.join(log_dir, "test_jesprit.txt")
+    with open(log_path, "w") as f:
+        f.write("Evaluation Results\n")
+        f.write("==================\n\n")
+        f.write(f"Default Parameters:\n{{'M': {M}, 'S': {S}, 'N': {N}, 'delta': {delta}}}\n\n")
+        f.write(f"Ground Truth Rates (Lambda):\n{lambdas_true}\n")
+        f.write(f"Ground Truth Weights (Pi):\n{pi}\n\n")
+        
+        for i in range(num_runs):
+            f.write(f"--- Run {i+1} ---\n")
+            f.write(f"Rate Error: {rate_errors[i]:.6f}\n")
+            f.write(f"Weight Error: {weight_errors[i]:.6f}\n")
+            f.write(f"Estimated Rates (omega_hat):\n{omega_hats[i]}\n")
+            f.write(f"Estimated Weights (a_k):\n{a_ks[i]}\n")
+            f.write("-" * 30 + "\n")
+    print(f"Log saved to {log_path}")
     
 if __name__ == "__main__":
-    test_jesprit()
+    test_jesprit(num_runs=20)

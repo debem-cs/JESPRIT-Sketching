@@ -53,7 +53,7 @@ def evaluate_parameters():
         os.makedirs("log")
 
     # Open results file
-    with open("log/parameter_evaluation.txt", "w") as f:
+    with open("log/evaluate_parameters.txt", "w") as f:
         f.write("Evaluation Results\n")
         f.write("==================\n\n")
         f.write(f"Default Parameters:\n{default_params}\n\n")
@@ -144,8 +144,8 @@ def evaluate_parameters():
         
     plt.tight_layout()
     plt.subplots_adjust(top=0.90) # Adjust layout to make room for suptitle
-    plt.savefig("log/parameter_evaluation.png")
-    print("\nEvaluation complete. Results saved to log/parameter_evaluation.png")
+    plt.savefig("log/evaluate_parameters.png")
+    print("\nEvaluation complete. Results saved to log/evaluate_parameters.png")
 
 if __name__ == "__main__":
     evaluate_parameters()
