@@ -3,9 +3,9 @@
 \subsection{Issue Identification: Component Mixing and Basis Mismatch}
 During the evaluation of the JESPRIT algorithm, a significant issue was observed where the estimated rates ($\bm{\lambda}$) exhibited "mass stealing" between components. For example, in a scenario with true rates of 100 and 100, the algorithm would consistently estimate approximately 75 and 126. This systematic error persisted even with a large number of samples, indicating a bias rather than variance.
 
-The root cause was identified in the interaction between the subspace estimation and the Joint Diagonalization step. Theoretical derivations of JESPRIT often assume a single global signal subspace. However, the practical implementation estimates the signal subspace $\bm{U}_s^{(l)}$ independently for each direction $l$ using the specific data slice corresponding to that direction.
+The root cause was identified in the interaction between the subspace estimation and the Joint Diagonalization step. Theoretical derivations of JESPRIT often assume a single global signal subspace. However, the practical implementation estimates the signal subspace $\bm{U}_s^{(l)}$ **independently** for each direction $l$ using the specific data slice corresponding to that direction.
 
-Because of finite sample noise and the random nature of the projections, these estimated subspaces $\bm{U}_s^{(l)}$ differ slightly but significantly across directions. Consequently, the Rotational Invariance Matrices $\bm{\Psi}_l$ are defined in different bases (different coordinate systems).
+Because of finite sample noise and the random nature of the projections, these estimated subspaces $\bm{U}_s^{(l)}$ differ **substantially** across directions. Consequently, the Rotational Invariance Matrices $\bm{\Psi}_l$ are defined in **different bases** (different coordinate systems).
 
 This creates two fundamental problems for the standard joint diagonalization approach:
 \begin{enumerate}
