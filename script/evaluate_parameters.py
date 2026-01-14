@@ -39,7 +39,7 @@ def evaluate_parameters():
     param_ranges = {
         'M': np.linspace(1, 40, 40, dtype=int),
         'S': np.linspace(1, 40, 40, dtype=int),
-        'N': np.linspace(1, 40, 40, dtype=int),
+        'N': np.linspace(2, 40, 40, dtype=int),
         'delta': np.linspace(0.001, 0.02, 40)
     }
 

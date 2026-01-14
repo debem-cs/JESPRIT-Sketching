@@ -1,5 +1,4 @@
 import numpy as np
-from esprit import esprit
 from joint_diag import joint_diag
 from numpy.linalg import pinv, eig, svd
 import itertools

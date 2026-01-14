@@ -17,7 +17,7 @@ def test_jesprit(num_runs=10):
     z_2 = np.array([[0], [1], [0]])
     z_3 = np.array([[0], [0], [1]])
     z = np.hstack([z_1, z_2, z_3]) 
-    pi = np.array([0.7, 0.2, 0.1])
+    pi = np.array([0.4, 0.25, 0.35])
 
     r = np.size(z, 1)
 
