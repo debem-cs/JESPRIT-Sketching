@@ -1,12 +1,13 @@
 import numpy as np
 from esprit import esprit
 from joint_diag import joint_diag
-from numpy.linalg import pinv, eig
+from numpy.linalg import pinv, eig, svd
 import itertools
 
 def jesprit(all_Z, r, U_directions, p_base_points, delta):
     """
     JESPRIT algorithm for mixed Poisson parameter estimation from PGF samples.
+    Uses Global SVD to estimate a common signal subspace.
 
     Parameters
     ----------
@@ -36,181 +37,66 @@ def jesprit(all_Z, r, U_directions, p_base_points, delta):
     N, S = all_Z[0].shape
     d = U_directions.shape[1]
 
-    # Step 2: Estimate Rotational Invariance Matrices Psi_l.
-    # all_Z is list of M arrays of shape (N, S).
-    # We stack them to (M, N, S).
-    Z_stack = np.stack(all_Z)
+    # Step 2: Global Subspace Estimation
+    # Stack all Z_l along the "sensor" axis (M*N, S)
+    X_glob = np.vstack(all_Z)
     
-    # esprit expects (batch, snapshots, sensors).
-    # We treat each direction l as a batch item.
-    # Each Z_l has shape (N, S).
-    # In the original code, we passed Z_l.T which is (S, N).
-    # So snapshots=S, sensors=N.
-    # We need input shape (M, S, N).
-    Z_input = Z_stack.transpose(0, 2, 1)
+    # SVD of the global data matrix
+    # U_glob: (M*N, M*N) if full, but we use full_matrices=False, so (M*N, min(MN, S))
+    # We need the first r columns.
+    U_glob, _, _ = svd(X_glob, full_matrices=False)
     
-    # all_Psi: shape (M, r, r)
-    all_Psi = esprit(Z_input, r)
+    # Global signal subspace of dimension r
+    U_s = U_glob[:, :r]
 
-    # Step 3: Eigenvalue Matching (Brute Force)
-    # Since Psi_l matrices are in different bases, we cannot use joint_diag.
-    # Instead, we compute eigenvalues for each Psi_l and match them.
-    
-    # Compute eigenvalues for all l
-    # all_evals: (M, r)
-    all_evals = np.zeros((M, r), dtype=complex)
+    # Step 3: Build Psi_l from the global subspace
+    all_Psi = []
     for l in range(M):
-        try:
-            evals, _ = eig(all_Psi[l])
-            all_evals[l] = evals
-        except np.linalg.LinAlgError:
-            all_evals[l] = np.nan
-            
-    # Step 4: Reconstruct d-D Frequencies (omega_k).
-    # We pick d directions to form a basis and try all permutations.
-    # U_directions: (M, d)
+        # Rows corresponding to direction l in the stacked matrix
+        start = l * N
+        stop = (l + 1) * N
+        U_line = U_s[start:stop, :]   # shape (N, r)
+        
+        # Shifted subspaces along the line
+        U_1 = U_line[:-1, :]          # (N-1, r)
+        U_2 = U_line[1:, :]           # (N-1, r)
+        
+        # Rotational invariance matrix for direction l
+        Psi_l = pinv(U_1) @ U_2       # (r, r)
+        all_Psi.append(Psi_l)
+
+    # Step 4: Joint Diagonalization
+    # Stack Psi matrices horizontally: (r, M*r)
+    A_joint = np.hstack(all_Psi)
     
-    # Find d linearly independent directions (usually first d)
-    basis_indices = []
+    # Solve for the common diagonalizer V
+    V, D_blocks = joint_diag(A_joint)
+    
+    # Extract diagonals (eigenvalues) from the diagonalized blocks
+    # mus[l, k] corresponds to direction l, component k
+    mus = np.zeros((M, r), dtype=complex)
     for l in range(M):
-        if len(basis_indices) < d:
-            basis_indices.append(l)
-            # Check independence
-            if np.linalg.matrix_rank(U_directions[basis_indices]) < len(basis_indices):
-                basis_indices.pop()
-                
-    if len(basis_indices) < d:
-        raise ValueError("Could not find d linearly independent directions.")
+        D_l = D_blocks[:, l*r:(l+1)*r]
+        mus[l, :] = np.diag(D_l)
         
-    # Generate all permutations for the basis directions (except the first one to fix ordering)
-    # We fix the order of eigenvalues for the first basis direction.
-    # For the other d-1 directions, we try all r! permutations.
+    # Step 5: Parameter Recovery (omega_hat)
+    # mus[l, k] = exp(j * delta * u_l^T * omega_k)
+    # We recover phases and solve inverse problem
     
-    import itertools
-    perms = list(itertools.permutations(range(r)))
+    phis = np.angle(mus) # (M, r)
     
-    best_omega_hat = None
-    min_error = float('inf')
-    best_permutation_per_direction = np.zeros((M, r), dtype=int)
+    # Assuming small delta, no wrapping handling needed (or very minimal).
+    # omega_hat = 1/delta * pinv(U_directions) @ phis
     
-    # Iterate over all combinations of permutations for the remaining d-1 basis directions
-    # num_combinations = (r!)^(d-1)
-    # For r=3, d=3 -> 36 combinations.
-    
-    basis_perms_combinations = list(itertools.product(perms, repeat=d-1))
-    
-    for combo in basis_perms_combinations:
-        # Construct a hypothesis for pairings
-        # We collect the "aligned" phases for the basis directions
-        # aligned_phases: (d, r)
-        aligned_phases = np.zeros((d, r))
-        
-        # First basis direction: identity permutation
-        l0 = basis_indices[0]
-        aligned_phases[0] = np.angle(all_evals[l0])
-        
-        # Other basis directions
-        for i, perm_idx in enumerate(combo):
-            l = basis_indices[i+1]
-            perm = list(perm_idx)
-            aligned_phases[i+1] = np.angle(all_evals[l][perm])
-            
-        # Unwrapping is tricky here because we only have d points.
-        # But we assume no wrapping for now (small delta).
-        
-        # Solve for omega candidates
-        # U_basis @ omega = phases/delta
-        # omega = inv(U_basis) @ phases/delta
-        # U_basis: (d, d)
-        # phases: (d, r) -> columns are phi_k
-        # omega: (d, r)
-        
-        U_basis = U_directions[basis_indices]
-        omega_candidates = pinv(U_basis) @ (aligned_phases / delta)
-        omega_candidates = omega_candidates.T # (r, d)
-        
-        # Evaluate error on ALL directions
-        total_error = 0.0
-        
-        # For each direction l, find best match for these omega candidates
-        current_perms = np.zeros((M, r), dtype=int)
-        
-        for l in range(M):
-            # Predicted phases: delta * u_l^T * omega
-            # (r,)
-            pred_phases = delta * (U_directions[l] @ omega_candidates.T)
-            # Wrap predicted phases to [-pi, pi] for comparison
-            pred_phases = np.angle(np.exp(1j * pred_phases))
-            
-            # Observed phases
-            obs_phases = np.angle(all_evals[l])
-            
-            # Find best permutation to match pred and obs
-            # We want to minimize sum |pred - obs|^2 (angular distance)
-            
-            best_l_error = float('inf')
-            best_l_perm = None
-            
-            for p in perms:
-                p = list(p)
-                permuted_obs = obs_phases[p]
-                # Angular difference
-                diff = np.angle(np.exp(1j * (pred_phases - permuted_obs)))
-                err = np.sum(diff**2)
-                
-                if err < best_l_error:
-                    best_l_error = err
-                    best_l_perm = p
-            
-            total_error += best_l_error
-            current_perms[l] = best_l_perm
-            
-        if total_error < min_error:
-            min_error = total_error
-            best_omega_hat = omega_candidates
-            best_permutation_per_direction = current_perms.copy()
-            
-    # Final Refinement
-    # Use all directions with the best permutations to re-estimate omega
-    
-    # Construct aligned unwrapped phases for all M
-    # paired_phis: (r, M)
-    paired_phis = np.zeros((r, M))
-    
-    for l in range(M):
-        perm = best_permutation_per_direction[l]
-        paired_phis[:, l] = np.angle(all_evals[l][perm])
-        
-    # Unwrap?
-    # Since we have random directions, unwrap is not applicable directly.
-    # However, if we trust our best_omega_hat, we can "unwrap" relative to it.
-    # But for small delta, we assume no wrapping.
-    
-    unwrapped_phis = paired_phis # No unwrap
-    
-    # Least squares with all directions
-    # omega_hat = 1/delta * (pinv(U) @ phis.T).T
-    omega_hat = 1/delta * (pinv(U_directions) @ unwrapped_phis.T).T
+    # omega_hat shape: (r, d)
+    # pinv(U): (d, M)
+    # phis: (M, r)
+    omega_hat = 1/delta * (pinv(U_directions) @ phis).T
     omega_hat = np.abs(np.real(omega_hat))
-    
-    # Reconstruct a_k needs A_glob which needs omega_hat.
-    # But we also need to order the "y_vec" or "A_glob" correctly?
-    # a_k estimation uses A_glob which depends on omega_hat.
-    # It does NOT depend on Psi permutations directly.
-    # So we just need correct omega_hat.
-    
-    # BUT, wait.
-    # a_k is estimated from Z.
-    # Z = A_glob @ a_k.
-    # A_glob depends on omega_hat.
-    # If omega_hat is correct, a_k will be correct.
-    # The order of a_k will match order of omega_hat.
-    
-    # So we are good.
 
-
-
-    # Step 5: Amplitude Estimation (pi_k).    
+    # Step 6: Amplitude Estimation (a_k / pi_k)
+    # We need to construct A_glob using the estimated omega_hat to solve for weights.
+    
     # Vectorized construction of A_glob and y_vec
     
     # Reshape for broadcasting to create N_VEC of shape (M, S, N, d)
@@ -242,6 +128,7 @@ def jesprit(all_Z, r, U_directions, p_base_points, delta):
     Z_array = Z_array.transpose(0, 2, 1)
     y_vec = Z_array.reshape(-1)
 
+    # Solve linear system: A_glob * a_k = y_vec
     a_k = pinv(A_glob) @ y_vec
     a_k = np.abs(a_k)
     a_k = a_k / np.sum(a_k)

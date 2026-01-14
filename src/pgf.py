@@ -32,6 +32,7 @@ def PGF(X, t):
 def sample_PGF(X, M, S, N, delta):
     """
     Generates measurement matrices by sampling the PGF along lines.
+    Optimized to reduce memory usage by looping over directions.
     
     Parameters
     ----------
@@ -66,44 +67,63 @@ def sample_PGF(X, M, S, N, delta):
     U_directions = np.where(norms > 1e-10, U_directions / norms, U_directions)
 
     # Generate base points
-    p_base_points = np.random.randn(M, S, d)
+    # IMPORTANT: For Global SVD / Joint ESPRIT, the base points (snapshots) must be
+    # shared across all directions to ensure the source signals are coherent.
+    # So we generate one set of base points and reuse it.
+    p_shared = np.random.randn(S, d)
+    # Broadcast to (M, S, d)
+    p_base_points = np.tile(p_shared, (M, 1, 1))
 
     # Pre-compute n vector for broadcasting
     # shape (1, N, 1, 1)
-    n_vec = np.arange(N).reshape(1, N, 1, 1)
+    n_vec = np.arange(N).reshape(1, N, 1) # (N, 1) for broadcasting against (S, d)? No.
     
-    # Reshape U_directions for broadcasting: (M, 1, 1, d)
-    U_reshaped = U_directions.reshape(M, 1, 1, d)
+    # We will compute Z for each direction l separately to save memory
+    all_Z = []
     
-    # Reshape p_base_points for broadcasting: (M, 1, S, d)
-    P_reshaped = p_base_points.reshape(M, 1, S, d)
-    
-    # u: shape (M, N, S, d)
-    # Broadcasting: (1, N, 1, 1) * (M, 1, 1, d) + (M, 1, S, d) -> (M, N, S, d)
-    u = n_vec * U_reshaped + P_reshaped
-    
-    # t: shape (M, N, S, d)
-    t = 1.0 + 1j * delta * u
-    
-    # log_t: shape (M, N, S, d)
-    log_t = np.log(t)
-    
-    # Transpose X for matrix multiplication: (d, n_samples)
+    # Transpose X once for efficiency: (d, n_samples)
     X_T = X.T
     
-    # Compute dot product with data
-    # log_t is (M, N, S, d), X_T is (d, n_samples)
-    # Result is (M, N, S, n_samples)
-    dot_product = log_t @ X_T
-    
-    # Exponentiate
-    exp_values = np.exp(dot_product)
-    
-    # Mean over samples (axis 3)
-    # Z_all_array: shape (M, N, S)
-    Z_all_array = np.mean(exp_values, axis=3)
-    
-    # Convert to list of (N, S) arrays
-    all_Z = [Z_all_array[l] for l in range(M)]
+    for l in range(M):
+        # direction u_l: (d,)
+        u_l = U_directions[l] # (d,)
+        
+        # base points p_l: (S, d)
+        # p_l is the same for all l now (conceptually), but we take the slice
+        p_l = p_base_points[l] # (S, d)
+        
+        # We need to compute points P_lns = p_l_s + n * u_l
+        # target shape: (N, S, d)
+        
+        # Reshape u_l: (1, 1, d)
+        u_l_resh = u_l.reshape(1, 1, d)
+        
+        # Reshape p_l: (1, S, d)
+        p_l_resh = p_l.reshape(1, S, d)
+        
+        # n_vec reshaped: (N, 1, 1)
+        n_vec_resh = np.arange(N).reshape(N, 1, 1)
+        
+        # Compute u coordinates: (N, S, d)
+        u_coords = n_vec_resh * u_l_resh + p_l_resh
+        
+        # t = 1 + j * delta * u_coords
+        t = 1.0 + 1j * delta * u_coords
+        
+        # log_t: (N, S, d)
+        log_t = np.log(t)
+        
+        # Compute dot product with data X_T (d, n_samples)
+        # log_t is (N, S, d)
+        # Result is (N, S, n_samples)
+        dot_product = log_t @ X_T
+        
+        # Exponentiate
+        exp_values = np.exp(dot_product)
+        
+        # Mean over samples (axis 2) -> (N, S)
+        Z_l = np.mean(exp_values, axis=2)
+        
+        all_Z.append(Z_l)
         
     return all_Z, U_directions, p_base_points

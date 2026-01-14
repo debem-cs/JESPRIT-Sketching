@@ -14,6 +14,6 @@ setup(
     
     # Specify dependencies
     install_requires=[
-        'numpy',
+        'numpy','matplotlib'
     ],
 )
