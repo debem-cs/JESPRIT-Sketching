@@ -42,3 +42,15 @@ The improved algorithm proceeds as follows:
 The implementation of this matching strategy yielded a dramatic improvement in estimation accuracy. In the test case where the original algorithm produced a rate error of approximately 11.11, the improved algorithm achieved a rate error of \textbf{0.89}. The weight error decreased from 0.12 to \textbf{0.005}. Crucially, the "mass stealing" effect was completely eliminated, with the algorithm correctly identifying the distinct components.
 
 This approach is computationally feasible for small to moderate $r$ (since the complexity scales with $(r!)^{d-1}$), which covers most practical applications of this method.
+
+\subsection{Alternative Approach: Global Subspace Estimation}
+An alternative method was also investigated to address the basis mismatch issue. The hypothesis was that estimating a single \textit{global} signal subspace from all data slices simultaneously would force the Rotational Invariance Matrices to share a common basis, thereby enabling the use of standard joint diagonalization.
+
+This "Global SVD" approach involves:
+\begin{enumerate}
+    \item Stacking all measurement matrices $\bm{Z}_l$ (for $l=1,\dots,M$) into a single large matrix $\bm{X}_{\text{glob}}$ of size $(M \cdot N) \times S$.
+    \item Performing a single SVD on $\bm{X}_{\text{glob}}$ to extract a global signal subspace $\bm{U}_{\text{glob}}$ of dimension $r$.
+    \item Extracting the direction-specific subspaces $\bm{U}_l$ as blocks of $\bm{U}_{\text{glob}}$ and computing $\bm{\Psi}_l$ within this common framework.
+\end{enumerate}
+
+However, experimental validation showed that this method performed significantly worse than the Brute-Force Eigenvalue Matching (Rate Error $\approx 30.7$ vs $0.89$). The failure is attributed to the fact that the true signal subspaces for different directions are nearly orthogonal (as confirmed by subspace distance metrics). Stacking them results in a high-rank matrix where a rank-$r$ truncation discards significant information, leading to a poor approximation of the underlying signal structure. This confirms that preserving the independence of the directional subspaces is crucial for accurate estimation.
