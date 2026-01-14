@@ -1,7 +1,7 @@
 import numpy as np
 from esprit import esprit
 from joint_diag import joint_diag
-from numpy.linalg import pinv
+from numpy.linalg import pinv, svd
 
 def jesprit(all_Z, r, U_directions, p_base_points, delta):
     """
@@ -34,22 +34,43 @@ def jesprit(all_Z, r, U_directions, p_base_points, delta):
         raise ValueError("all_Z must not be empty.")
     N, S = all_Z[0].shape
 
-    # Step 2: Estimate Rotational Invariance Matrices Psi_l.
+    # Step 2: Global Subspace Estimation (Global SVD)
+    # Stack all Z_l along the "sensor" axis (M*N, S)
+    X_glob = np.vstack(all_Z)
+    
+    # SVD of the global data matrix to find common signal subspace
+    # U_glob: (M*N, M*N), we need first r columns
+    U_glob, _, _ = np.linalg.svd(X_glob, full_matrices=False)
+    U_s = U_glob[:, :r]
+
+    # Step 3: Build Rotational Invariance Matrices Psi_l from global subspace
     all_Psi = []
     for l in range(M):
-        # esprit() expects (snapshots, sensors), so we transpose Z_l.
-        Psi_l = esprit(all_Z[l].T, r)
+        # Extract rows for direction l
+        start = l * N
+        stop = (l + 1) * N
+        U_line = U_s[start:stop, :]   # (N, r)
+        
+        # Shifted subspaces
+        U_1 = U_line[:-1, :]          # (N-1, r)
+        U_2 = U_line[1:, :]           # (N-1, r)
+        
+        # Rotational invariance matrix
+        Psi_l = pinv(U_1) @ U_2       # (r, r)
         all_Psi.append(Psi_l)
 
-    # Step 3: Joint Diagonalization of Psi Matrices.
+    # Step 4: Joint Diagonalization of Psi Matrices.
+    # Stack Psi matrices horizontally: (r, M*r)
     A = np.hstack(all_Psi)
-    T_hat, all_Phi_hat = joint_diag(A)
+    # Solve for common diagonalizer V
+    V, D_blocks = joint_diag(A)
 
     # Step 4: Reconstruct d-D Frequencies (omega_k).
     paired_phis = np.zeros((r, M))
+    paired_phis = np.zeros((r, M))
     for l in range(M):
         # Extract the l-th diagonalized matrix.
-        Phi_l = all_Phi_hat[:, l*r:(l+1)*r]
+        Phi_l = D_blocks[:, l*r:(l+1)*r]
         # The diagonal contains the eigenvalues, whose angles are the 1D frequencies.
         diag_elements = np.diag(Phi_l)
         paired_phis[:, l] = np.angle(diag_elements)

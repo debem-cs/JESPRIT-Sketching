@@ -4,24 +4,25 @@ from pgf import sample_PGF
 from jesprit import jesprit
 
 def test_jesprit():   
-    # --- 1. Define Parameters (Based on PDF Example 1.1) ---
+    # --- 1. Define Parameters (Difficult Case with Overlap) ---
+    # Component 1: [100, 100, 1]
+    # Component 2: [1, 100, 100]
+    # Component 3: [100, 1, 100]
+    # Observe that they overlap significantly in pairs.
     
-    A = np.array([
-        [10, 1],  # "calculus"
-        [2,  8],  # "football"
-        [1,  9]   # "investment"
-    ])
+    A = np.eye(3) # Identity mapping for simplicity to control rates directly via z
+    
+    z_1 = np.array([[30], [100], [1]])
+    z_2 = np.array([[1], [100], [100]])
+    z_3 = np.array([[100], [1], [100]])
+    
+    z = np.hstack([z_1, z_2, z_3]) 
+    r = np.size(z, 1)
 
-    z_1 = np.array([[5], [0]]) 
-    z_2 = np.array([[0], [10]])
+    pi = np.array([0.4, 0.35, 0.25])
     
-    z = np.hstack([z_1, z_2]) 
-    r= np.size(z, 1)
-
-    pi = np.array([0.2, 0.8])
-    
-    n_samples = 10000
-    delta = 0.01
+    n_samples = 5000 # High samples for difficult separation
+    delta = 0.5/np.max(z) # Tune delta
     
     d, m = A.shape
 
@@ -35,9 +36,9 @@ def test_jesprit():
     X = generate_mixed_poisson_samples(A, pi, z, n_samples)
     
     # Sampling parameters for JESPRIT
-    M = 50  # Number of directions (>= d)
-    S = 50   # Number of snapshots (>= r)
-    N = 10   # Number of samples per line (>= r + 1)
+    M = 50  # Number of directions
+    S = 30   # Number of snapshots
+    N = 30   # Number of samples per line
     
     all_Z, U_directions, p_base_points = sample_PGF(X, M, S, N, delta)
 

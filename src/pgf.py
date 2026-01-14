@@ -68,7 +68,10 @@ def sample_PGF(X, M, S, N, delta):
             U_directions[i,:] /= norm
 
     # Generate base points
-    p_base_points = np.random.randn(M, S, d)
+    # IMPORTANT: Shared base points for Global SVD coherence.
+    p_shared = np.random.randn(S, d)
+    # Broadcast to (M, S, d)
+    p_base_points = np.tile(p_shared, (M, 1, 1))
 
     all_Z = []
     for l in range(M):
