@@ -2,24 +2,27 @@ import numpy as np
 from joint_diag import joint_diag
 from numpy.linalg import pinv, eig, svd
 import itertools
+from pgf import sample_PGF
 
-def jesprit(all_Z, r, U_directions, p_base_points, delta):
+def jesprit(X, r, M, S, N, delta):
     """
-    JESPRIT algorithm for mixed Poisson parameter estimation from PGF samples.
-    Uses Global SVD to estimate a common signal subspace.
+    JESPRIT algorithm for mixed Poisson parameter estimation from a dataset X.
+    Internally computes PGF samples and uses Global SVD.
 
     Parameters
     ----------
-    all_Z : list of np.ndarray
-        List of M measurement matrices, each of shape (N, S).
+    X : np.ndarray
+        The input count data, shape (n_samples, d).
     r : int
         The number of latent factors (components) in the mixture.
-    U_directions : np.ndarray
-        The direction vectors used for sampling, shape (M, d).
-    p_base_points : np.ndarray
-        The base points used for sampling, shape (M, S, d).
+    M : int
+        Number of random directions.
+    S : int
+        Number of base points per direction.
+    N : int
+        Number of evaluation points per line.
     delta : float
-        Scaling factor for the grid to keep |t| close to 1.
+        Scaling factor for the grid.
 
     Returns
     -------
@@ -29,6 +32,9 @@ def jesprit(all_Z, r, U_directions, p_base_points, delta):
     a_k : np.ndarray
         The estimated mixture weights of the components, of shape (r,).
     """
+    # Step 1: Compute PGF samples
+    all_Z, U_directions, p_base_points = sample_PGF(X, M, S, N, delta)
+    
     # Infer M, N, and S from the dimensions of the input data
     M = len(all_Z)
     if M == 0:
@@ -134,43 +140,56 @@ def jesprit(all_Z, r, U_directions, p_base_points, delta):
     
     return omega_hat, a_k
 
+from scipy.optimize import linear_sum_assignment
+
 def compute_error(lambda_true, pi_true, lambda_est, pi_est):
     """
-    Computes the estimation error, handling permutation ambiguity.
-    Returns (rate_error, weight_error) for the best permutation.
+    Computes the estimation error, handling permutation ambiguity using the Hungarian Algorithm.
+    Returns (rate_error, weight_error, lambda_aligned, pi_aligned).
     """
     r = len(pi_true)
-    # Try all permutations to match estimated components to true components
-    permutations = list(itertools.permutations(range(r)))
     
-    best_perm = None
-    min_total_error = float('inf')
-    best_rate_error = 0.0
-    best_weight_error = 0.0
+    # Cost matrix C[i, j] = error if true_component_i matches est_component_j
+    # We define error as normalized rate error + normalized weight error
     
-    for perm in permutations:
-        perm = list(perm)
-        lambda_est_perm = lambda_est[perm, :]
-        pi_est_perm = pi_est[perm]
-        
-        # Error in rates (normalized)
-        # lambda_true is (d, r), lambda_est is (r, d) usually in this context?
-        # In this function, lambda_true is (d, r). lambda_est is (r, d).
-        # So we transpose lambda_est_perm to compare with lambda_true
-        
-        rate_err = np.linalg.norm(lambda_true - lambda_est_perm.T) / np.linalg.norm(lambda_true)
-        weight_err = np.linalg.norm(pi_true - pi_est_perm) / np.linalg.norm(pi_true)
-        
-        total_error = rate_err + weight_err
-        
-        if total_error < min_total_error:
-            min_total_error = total_error
-            best_rate_error = rate_err
-            best_weight_error = weight_err
-            best_perm = perm
-
-    # Return aligned estimates
+    # lambda_true: (d, r)
+    # lambda_est: (r, d) -> transpose to (d, r) for comparison
+    lambda_est_T = lambda_est.T
+    
+    norm_lambda = np.linalg.norm(lambda_true)
+    norm_pi = np.linalg.norm(pi_true)
+    
+    C = np.zeros((r, r))
+    
+    for i in range(r): # True component index
+        for j in range(r): # Estimated component index
+            # Rate error term
+            diff_rate = lambda_true[:, i] - lambda_est_T[:, j]
+            term_rate = np.linalg.norm(diff_rate) / norm_lambda
+            
+            # Weight error term
+            diff_weight = pi_true[i] - pi_est[j]
+            term_weight = np.abs(diff_weight) / norm_pi
+            
+            C[i, j] = term_rate + term_weight
+            
+    # Solve assignment problem
+    # row_ind will be 0..r-1 (true components)
+    # col_ind will be the matching indices in estimated components
+    row_ind, col_ind = linear_sum_assignment(C)
+    
+    # Reorder estimated components to match true components
+    # col_ind[i] tells us which estimated component j matches true component i
+    best_perm = col_ind
+    
     lambda_est_aligned = lambda_est[best_perm, :]
     pi_est_aligned = pi_est[best_perm]
+    
+    # Recalculate errors with best permutation
+    # Rate error
+    rate_err = np.linalg.norm(lambda_true - lambda_est_aligned.T) / norm_lambda
+    
+    # Weight error
+    weight_err = np.linalg.norm(pi_true - pi_est_aligned) / norm_pi
             
-    return best_rate_error, best_weight_error, lambda_est_aligned, pi_est_aligned
+    return rate_err, weight_err, lambda_est_aligned, pi_est_aligned

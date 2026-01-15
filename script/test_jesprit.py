@@ -9,8 +9,8 @@ def test_jesprit(num_runs=10):
     # --- 1. Define Parameters (Based on PDF Example 1.1) ---
     
     # Randomly generate A and pi
-    d_dim = 50
-    r_dim = 5
+    d_dim = 5
+    r_dim = 3
     A = np.random.randint(10, 150, size=(d_dim, r_dim))
     
     z = np.eye(r_dim)
@@ -23,7 +23,7 @@ def test_jesprit(num_runs=10):
     # Calculate the true lambda rates for each component
     lambdas_true = A @ z
 
-    n_samples = 10000
+    n_samples = 2000
     delta = 1/np.max(lambdas_true)
     
     d, m = A.shape
@@ -48,10 +48,8 @@ def test_jesprit(num_runs=10):
     print(f"\nRunning JESPRIT {num_runs} times on the same dataset...")
 
     for i in range(num_runs):
-        all_Z, U_directions, p_base_points = sample_PGF(X, M, S, N, delta)
-
         omega_hat, a_k = jesprit(
-            all_Z, r, U_directions, p_base_points, delta
+            X, r, M, S, N, delta
         )
         
         rate_error, weight_error, omega_aligned, a_k_aligned = compute_error(lambdas_true, pi, omega_hat, a_k)

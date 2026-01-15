@@ -74,19 +74,12 @@ def evaluate_parameters():
                 
                 # Run JESPRIT
                 try:
-                    all_Z, U_directions, p_base_points = sample_PGF(
-                        X, 
-                        current_params['M'], 
-                        current_params['S'], 
-                        current_params['N'], 
-                        current_params['delta']
-                    )
-                    
                     omega_hat, a_k = jesprit(
-                        all_Z, 
-                        len(pi), 
-                        U_directions, 
-                        p_base_points, 
+                        X,
+                        len(pi),
+                        current_params['M'],
+                        current_params['S'],
+                        current_params['N'],
                         current_params['delta']
                     )
                     
