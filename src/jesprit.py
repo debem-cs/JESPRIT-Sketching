@@ -93,10 +93,10 @@ def jesprit(X, r, M, S, N, delta):
     # Assuming small delta, no wrapping handling needed (or very minimal).
     # omega_hat = 1/delta * pinv(U_directions) @ phis
     
-    # omega_hat shape: (r, d)
+    # omega_hat shape: (d, r)
     # pinv(U): (d, M)
     # phis: (M, r)
-    omega_hat = 1/delta * (pinv(U_directions) @ phis).T
+    omega_hat = 1/delta * (pinv(U_directions) @ phis)
     omega_hat = np.abs(np.real(omega_hat))
 
     # Step 6: Amplitude Estimation (a_k / pi_k)
@@ -119,9 +119,9 @@ def jesprit(X, r, M, S, N, delta):
     N_VEC_flat = N_VEC.reshape(-1, d)
     
     # Compute A_glob
-    # omega_hat: (r, d)
+    # omega_hat: (d, r)
     # exponent: (M*S*N, r)
-    exponent = 1j * delta * (N_VEC_flat @ omega_hat.T)
+    exponent = 1j * delta * (N_VEC_flat @ omega_hat)
     A_glob = np.exp(exponent)
     
     # Construct y_vec
@@ -153,8 +153,7 @@ def compute_error(lambda_true, pi_true, lambda_est, pi_est):
     # We define error as normalized rate error + normalized weight error
     
     # lambda_true: (d, r)
-    # lambda_est: (r, d) -> transpose to (d, r) for comparison
-    lambda_est_T = lambda_est.T
+    # lambda_est: (d, r)
     
     norm_lambda = np.linalg.norm(lambda_true)
     norm_pi = np.linalg.norm(pi_true)
@@ -164,7 +163,7 @@ def compute_error(lambda_true, pi_true, lambda_est, pi_est):
     for i in range(r): # True component index
         for j in range(r): # Estimated component index
             # Rate error term
-            diff_rate = lambda_true[:, i] - lambda_est_T[:, j]
+            diff_rate = lambda_true[:, i] - lambda_est[:, j]
             term_rate = np.linalg.norm(diff_rate) / norm_lambda
             
             # Weight error term
@@ -182,12 +181,12 @@ def compute_error(lambda_true, pi_true, lambda_est, pi_est):
     # col_ind[i] tells us which estimated component j matches true component i
     best_perm = col_ind
     
-    lambda_est_aligned = lambda_est[best_perm, :]
+    lambda_est_aligned = lambda_est[:, best_perm]
     pi_est_aligned = pi_est[best_perm]
     
     # Recalculate errors with best permutation
     # Rate error
-    rate_err = np.linalg.norm(lambda_true - lambda_est_aligned.T) / norm_lambda
+    rate_err = np.linalg.norm(lambda_true - lambda_est_aligned) / norm_lambda
     
     # Weight error
     weight_err = np.linalg.norm(pi_true - pi_est_aligned) / norm_pi

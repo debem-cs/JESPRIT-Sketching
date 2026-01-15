@@ -93,14 +93,26 @@ def evaluate_parameters():
                     f.write(f"\nParameter {param_name} = {val}\n")
                     f.write(f"Rate Error: {rate_error:.2f}\n")
                     f.write(f"Weight Error: {weight_error:.2f}\n")
-                    f.write(f"Estimated Rates (omega_hat):\n{omega_aligned.T}\n")
-                    f.write(f"Rate Diff (GT - Est):\n{lambda_true - omega_aligned.T}\n")
+                    f.write(f"Estimated Rates (omega_hat):\n{omega_aligned}\n")
+                    f.write(f"Rate Diff (GT - Est):\n{lambda_true - omega_aligned}\n")
                     with np.printoptions(precision=1):
-                        f.write(f"Rate Rel Err % ((GT - Est)/GT * 100):\n{(lambda_true - omega_aligned.T)/lambda_true * 100}\n")
+                        rel_err_rate = np.divide(
+                            lambda_true - omega_aligned, 
+                            lambda_true, 
+                            out=np.zeros_like(lambda_true, dtype=float), 
+                            where=lambda_true!=0
+                        ) * 100
+                        f.write(f"Rate Rel Err % ((GT - Est)/GT * 100):\n{rel_err_rate}\n")
                     f.write(f"Estimated Weights (a_k):\n{a_k_aligned}\n")
                     f.write(f"Weight Diff (GT - Est):\n{pi - a_k_aligned}\n")
                     with np.printoptions(precision=1):
-                        f.write(f"Weight Rel Err % ((GT - Est)/GT * 100):\n{(pi - a_k_aligned)/pi * 100}\n")
+                        rel_err_weight = np.divide(
+                             pi - a_k_aligned,
+                             pi,
+                             out=np.zeros_like(pi, dtype=float),
+                             where=pi!=0
+                        ) * 100
+                        f.write(f"Weight Rel Err % ((GT - Est)/GT * 100):\n{rel_err_weight}\n")
                     f.write("-" * 30 + "\n")
                     
                 except Exception as e:

@@ -11,7 +11,7 @@ def test_jesprit(num_runs=10):
     # Randomly generate A and pi
     d_dim = 5
     r_dim = 3
-    A = np.random.randint(10, 150, size=(d_dim, r_dim))
+    A = np.random.randint(0, 100, size=(d_dim, r_dim))
     
     z = np.eye(r_dim)
     
@@ -23,7 +23,7 @@ def test_jesprit(num_runs=10):
     # Calculate the true lambda rates for each component
     lambdas_true = A @ z
 
-    n_samples = 2000
+    n_samples = 5000
     delta = 1/np.max(lambdas_true)
     
     d, m = A.shape
@@ -112,14 +112,27 @@ def test_jesprit(num_runs=10):
             f.write(f"--- Run {i+1} ---\n")
             f.write(f"Rate Error: {rate_errors[i]:.2f}\n")
             f.write(f"Weight Error: {weight_errors[i]:.2f}\n")
-            f.write(f"Estimated Rates (omega_hat):\n{omega_hats[i].T}\n")
-            f.write(f"Rate Diff (GT - Est):\n{lambdas_true - omega_hats[i].T}\n")
+            f.write(f"Estimated Rates (omega_hat):\n{omega_hats[i]}\n")
+            f.write(f"Rate Diff (GT - Est):\n{lambdas_true - omega_hats[i]}\n")
             with np.printoptions(precision=1):
-                f.write(f"Rate Rel Err % ((GT - Est)/GT * 100):\n{(lambdas_true - omega_hats[i].T)/lambdas_true * 100}\n")
+                # Handle potential divide by zero
+                rel_err_rate = np.divide(
+                    lambdas_true - omega_hats[i], 
+                    lambdas_true, 
+                    out=np.zeros_like(lambdas_true, dtype=float), 
+                    where=lambdas_true!=0
+                ) * 100
+                f.write(f"Rate Rel Err % ((GT - Est)/GT * 100):\n{rel_err_rate}\n")
             f.write(f"Estimated Weights (a_k):\n{a_ks[i]}\n")
             f.write(f"Weight Diff (GT - Est):\n{pi - a_ks[i]}\n")
             with np.printoptions(precision=1):
-                f.write(f"Weight Rel Err % ((GT - Est)/GT * 100):\n{(pi - a_ks[i])/pi * 100}\n")
+                rel_err_weight = np.divide(
+                     pi - a_ks[i],
+                     pi,
+                     out=np.zeros_like(pi, dtype=float),
+                     where=pi!=0
+                ) * 100
+                f.write(f"Weight Rel Err % ((GT - Est)/GT * 100):\n{rel_err_weight}\n")
             f.write("-" * 30 + "\n")
     print(f"Log saved to {log_path}")
     
