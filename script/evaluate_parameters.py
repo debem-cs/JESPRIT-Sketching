@@ -102,8 +102,10 @@ def evaluate_parameters():
                     f.write(f"Weight Error: {weight_error:.2f}\n")
                     f.write(f"Estimated Rates (omega_hat):\n{omega_aligned.T}\n")
                     f.write(f"Rate Diff (GT - Est):\n{lambda_true - omega_aligned.T}\n")
+                    f.write(f"Rate Rel Err ((GT - Est)/GT):\n{(lambda_true - omega_aligned.T)/lambda_true}\n")
                     f.write(f"Estimated Weights (a_k):\n{a_k_aligned}\n")
                     f.write(f"Weight Diff (GT - Est):\n{pi - a_k_aligned}\n")
+                    f.write(f"Weight Rel Err ((GT - Est)/GT):\n{(pi - a_k_aligned)/pi}\n")
                     f.write("-" * 30 + "\n")
                     
                 except Exception as e:
