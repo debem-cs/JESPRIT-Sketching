@@ -11,10 +11,8 @@ def evaluate_parameters():
         [30,  100, 1],
         [1,   1, 100]
     ])
-    z_1 = np.array([[1], [0], [0]]) 
-    z_2 = np.array([[0], [1], [0]])
-    z_3 = np.array([[0], [0], [1]])
-    z = np.hstack([z_1, z_2, z_3]) 
+
+    z = np.eye(A.shape[1]) 
     pi = np.array([0.7, 0.2, 0.1])
     
     d, _ = A.shape
@@ -89,7 +87,7 @@ def evaluate_parameters():
                         current_params['delta']
                     )
                     
-                    rate_error, weight_error = compute_error(lambda_true, pi, omega_hat, a_k)
+                    rate_error, weight_error, omega_aligned, a_k_aligned = compute_error(lambda_true, pi, omega_hat, a_k)
                     rate_errors.append(rate_error)
                     weight_errors.append(weight_error)
                     
@@ -99,8 +97,10 @@ def evaluate_parameters():
                     f.write(f"\nParameter {param_name} = {val}\n")
                     f.write(f"Rate Error: {rate_error:.6f}\n")
                     f.write(f"Weight Error: {weight_error:.6f}\n")
-                    f.write(f"Estimated Rates (omega_hat):\n{omega_hat.T}\n")
-                    f.write(f"Estimated Weights (a_k):\n{a_k}\n")
+                    f.write(f"Estimated Rates (omega_hat):\n{omega_aligned.T}\n")
+                    f.write(f"Rate Diff (GT - Est):\n{lambda_true - omega_aligned.T}\n")
+                    f.write(f"Estimated Weights (a_k):\n{a_k_aligned}\n")
+                    f.write(f"Weight Diff (GT - Est):\n{pi - a_k_aligned}\n")
                     f.write("-" * 30 + "\n")
                     
                 except Exception as e:

@@ -143,25 +143,34 @@ def compute_error(lambda_true, pi_true, lambda_est, pi_est):
     # Try all permutations to match estimated components to true components
     permutations = list(itertools.permutations(range(r)))
     
+    best_perm = None
     min_total_error = float('inf')
     best_rate_error = 0.0
     best_weight_error = 0.0
     
     for perm in permutations:
         perm = list(perm)
-        lambda_est_perm = lambda_est[perm, :].T
+        lambda_est_perm = lambda_est[perm, :]
+        pi_est_perm = pi_est[perm]
         
         # Error in rates (normalized)
-        rate_error = np.mean(np.abs(lambda_true - lambda_est_perm))
+        # lambda_true is (d, r), lambda_est is (r, d) usually in this context?
+        # In this function, lambda_true is (d, r). lambda_est is (r, d).
+        # So we transpose lambda_est_perm to compare with lambda_true
         
-        # Error in weights
-        weight_error = np.mean(np.abs(pi_true - pi_est[perm]))
+        rate_err = np.linalg.norm(lambda_true - lambda_est_perm.T) / np.linalg.norm(lambda_true)
+        weight_err = np.linalg.norm(pi_true - pi_est_perm) / np.linalg.norm(pi_true)
         
-        total_error = rate_error + weight_error
+        total_error = rate_err + weight_err
         
         if total_error < min_total_error:
             min_total_error = total_error
-            best_rate_error = rate_error
-            best_weight_error = weight_error
+            best_rate_error = rate_err
+            best_weight_error = weight_err
+            best_perm = perm
+
+    # Return aligned estimates
+    lambda_est_aligned = lambda_est[best_perm, :]
+    pi_est_aligned = pi_est[best_perm]
             
-    return best_rate_error, best_weight_error
+    return best_rate_error, best_weight_error, lambda_est_aligned, pi_est_aligned
