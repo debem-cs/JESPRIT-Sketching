@@ -10,7 +10,7 @@ def test_jesprit(num_runs=10):
     
     # Randomly generate A and pi
     d_dim = 50
-    r_dim = 3
+    r_dim = 5
     A = np.random.randint(10, 150, size=(d_dim, r_dim))
     
     z = np.eye(r_dim)
@@ -67,9 +67,12 @@ def test_jesprit(num_runs=10):
     avg_weight_error = np.mean(weight_errors)
     std_weight_error = np.std(weight_errors)
 
+    # Set numpy print options for 2 decimal places
+    np.set_printoptions(precision=2, suppress=True)
+
     print("\n--- Summary Statistics ---")
-    print(f"Rate Error: Mean = {avg_rate_error:.4f}, Std = {std_rate_error:.4f}")
-    print(f"Weight Error: Mean = {avg_weight_error:.4f}, Std = {std_weight_error:.4f}")
+    print(f"Rate Error: Mean = {avg_rate_error:.2f}, Std = {std_rate_error:.2f}")
+    print(f"Weight Error: Mean = {avg_weight_error:.2f}, Std = {std_weight_error:.2f}")
 
     # Ensure log directory exists
     log_dir = "log"
@@ -103,14 +106,14 @@ def test_jesprit(num_runs=10):
     with open(log_path, "w") as f:
         f.write("Evaluation Results\n")
         f.write("==================\n\n")
-        f.write(f"Default Parameters:\n{{'M': {M}, 'S': {S}, 'N': {N}, 'delta': {delta}}}\n\n")
+        f.write(f"Default Parameters:\n{{'M': {M}, 'S': {S}, 'N': {N}, 'delta': {delta:.2f}}}\n\n")
         f.write(f"Ground Truth Rates (Lambda):\n{lambdas_true}\n")
         f.write(f"Ground Truth Weights (Pi):\n{pi}\n\n")
         
         for i in range(num_runs):
             f.write(f"--- Run {i+1} ---\n")
-            f.write(f"Rate Error: {rate_errors[i]:.6f}\n")
-            f.write(f"Weight Error: {weight_errors[i]:.6f}\n")
+            f.write(f"Rate Error: {rate_errors[i]:.2f}\n")
+            f.write(f"Weight Error: {weight_errors[i]:.2f}\n")
             f.write(f"Estimated Rates (omega_hat):\n{omega_hats[i].T}\n")
             f.write(f"Rate Diff (GT - Est):\n{lambdas_true - omega_hats[i].T}\n")
             f.write(f"Estimated Weights (a_k):\n{a_ks[i]}\n")

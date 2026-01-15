@@ -45,6 +45,9 @@ def evaluate_parameters():
     
     print("Evaluating parameters...")
     
+    # Set numpy print options for 2 decimal places
+    np.set_printoptions(precision=2, suppress=True)
+    
     # Ensure log directory exists
     import os
     if not os.path.exists("log"):
@@ -91,12 +94,12 @@ def evaluate_parameters():
                     rate_errors.append(rate_error)
                     weight_errors.append(weight_error)
                     
-                    print(f"  {param_name}={val}: Rate Error={rate_error:.4f}, Weight Error={weight_error:.4f}")
+                    print(f"  {param_name}={val}: Rate Error={rate_error:.2f}, Weight Error={weight_error:.2f}")
                     
                     # Write to file
                     f.write(f"\nParameter {param_name} = {val}\n")
-                    f.write(f"Rate Error: {rate_error:.6f}\n")
-                    f.write(f"Weight Error: {weight_error:.6f}\n")
+                    f.write(f"Rate Error: {rate_error:.2f}\n")
+                    f.write(f"Weight Error: {weight_error:.2f}\n")
                     f.write(f"Estimated Rates (omega_hat):\n{omega_aligned.T}\n")
                     f.write(f"Rate Diff (GT - Est):\n{lambda_true - omega_aligned.T}\n")
                     f.write(f"Estimated Weights (a_k):\n{a_k_aligned}\n")
