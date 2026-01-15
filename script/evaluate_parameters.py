@@ -35,10 +35,10 @@ def evaluate_parameters():
     
     # Ranges to test
     param_ranges = {
-        'M': np.linspace(1, 40, 40, dtype=int),
-        'S': np.linspace(1, 40, 40, dtype=int),
-        'N': np.linspace(2, 40, 40, dtype=int),
-        'delta': np.linspace(0.001, 0.02, 40)
+        'M': np.linspace(1, 40, 10, dtype=int),
+        'S': np.linspace(1, 40, 10, dtype=int),
+        'N': np.linspace(2, 40, 10, dtype=int),
+        'delta': np.linspace(0.001, 0.02, 10)
     }
 
     results = {}
@@ -102,10 +102,12 @@ def evaluate_parameters():
                     f.write(f"Weight Error: {weight_error:.2f}\n")
                     f.write(f"Estimated Rates (omega_hat):\n{omega_aligned.T}\n")
                     f.write(f"Rate Diff (GT - Est):\n{lambda_true - omega_aligned.T}\n")
-                    f.write(f"Rate Rel Err ((GT - Est)/GT):\n{(lambda_true - omega_aligned.T)/lambda_true}\n")
+                    with np.printoptions(precision=1):
+                        f.write(f"Rate Rel Err % ((GT - Est)/GT * 100):\n{(lambda_true - omega_aligned.T)/lambda_true * 100}\n")
                     f.write(f"Estimated Weights (a_k):\n{a_k_aligned}\n")
                     f.write(f"Weight Diff (GT - Est):\n{pi - a_k_aligned}\n")
-                    f.write(f"Weight Rel Err ((GT - Est)/GT):\n{(pi - a_k_aligned)/pi}\n")
+                    with np.printoptions(precision=1):
+                        f.write(f"Weight Rel Err % ((GT - Est)/GT * 100):\n{(pi - a_k_aligned)/pi * 100}\n")
                     f.write("-" * 30 + "\n")
                     
                 except Exception as e:

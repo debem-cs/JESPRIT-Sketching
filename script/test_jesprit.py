@@ -23,7 +23,7 @@ def test_jesprit(num_runs=10):
     # Calculate the true lambda rates for each component
     lambdas_true = A @ z
 
-    n_samples = 5000
+    n_samples = 10000
     delta = 1/np.max(lambdas_true)
     
     d, m = A.shape
@@ -116,10 +116,12 @@ def test_jesprit(num_runs=10):
             f.write(f"Weight Error: {weight_errors[i]:.2f}\n")
             f.write(f"Estimated Rates (omega_hat):\n{omega_hats[i].T}\n")
             f.write(f"Rate Diff (GT - Est):\n{lambdas_true - omega_hats[i].T}\n")
-            f.write(f"Rate Rel Err ((GT - Est)/GT):\n{(lambdas_true - omega_hats[i].T)/lambdas_true}\n")
+            with np.printoptions(precision=1):
+                f.write(f"Rate Rel Err % ((GT - Est)/GT * 100):\n{(lambdas_true - omega_hats[i].T)/lambdas_true * 100}\n")
             f.write(f"Estimated Weights (a_k):\n{a_ks[i]}\n")
             f.write(f"Weight Diff (GT - Est):\n{pi - a_ks[i]}\n")
-            f.write(f"Weight Rel Err ((GT - Est)/GT):\n{(pi - a_ks[i])/pi}\n")
+            with np.printoptions(precision=1):
+                f.write(f"Weight Rel Err % ((GT - Est)/GT * 100):\n{(pi - a_ks[i])/pi * 100}\n")
             f.write("-" * 30 + "\n")
     print(f"Log saved to {log_path}")
     
