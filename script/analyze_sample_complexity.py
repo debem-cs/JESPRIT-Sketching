@@ -9,7 +9,7 @@ import time
 
 def analyze_sample_complexity():
     # Configuration
-    max_d = 15
+    max_d = 8
     d_range = list(range(1, max_d + 1)) 
     r_range = list(range(1, max_d + 1)) 
     
@@ -67,7 +67,7 @@ def analyze_sample_complexity():
                     
                     # 1. Generate Ground Truth
                     try:
-                        A = np.random.randint(20, 100, size=(d, r))
+                        A = np.random.randint(20, 1000, size=(d, r))
                         z = np.eye(r)
                         pi = np.random.rand(r)
                         pi = pi / np.sum(pi)
