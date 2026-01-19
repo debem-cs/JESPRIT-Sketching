@@ -9,16 +9,16 @@ import time
 
 def analyze_sample_complexity():
     # Configuration
-    max_d = 5
+    max_d = 15
     d_range = list(range(1, max_d + 1)) 
     r_range = list(range(1, max_d + 1)) 
     
-    n_trials = 3                       # Number of random trials per (d, r) to compute median
+    n_trials = 5                       # Number of random trials per (d, r) to compute median
     target_error = 0.10                # 10% error threshold (Average MRE)
-    patience = 3                       # Early stopping patience
+    patience = 2                       # Early stopping patience
     
     # Sample sizes to test
-    sample_steps = [1000, 5000, 10000, 25000, 50000, 75000, 100000, 150000, 200000]
+    sample_steps = [1000, 10000, 50000, 100000]
     max_n = sample_steps[-1]
     
     print(f"Starting Grid Search Sample Complexity Analysis (Median of {n_trials} trials)")
@@ -34,15 +34,26 @@ def analyze_sample_complexity():
     # Data storage for plotting
     results = []
 
-    with open(os.path.join(log_dir, "sample_complexity_grid.txt"), "w") as f:
-        f.write("d, r, Median Samples, Median Rate Err, Median Weight Err, Median Time, Success Rate\n")
+    MAX_CONSECUTIVE_FAILURES = 2
+    success_threshold = 0.6            # Threshold for success rate (fraction of trials passed)
+    
+    with open(os.path.join(log_dir, "sample_complexity.txt"), "w") as f:
+        f.write("d, r, Trial, Samples, Rate Err, Weight Err, Time, Success\n")
         f.flush()
+
         
         for d in d_range:
+            consecutive_failures = 0
             for r in r_range:
-                if r > d:
-                    continue
+                # Removed the constraint r > d restriction as per user request
+                # if r > d:
+                #    continue
                 
+                # Check for early stopping on r-loop if we are failing too much
+                if consecutive_failures >= MAX_CONSECUTIVE_FAILURES:
+                    print(f"Skipping remaining r values for d={d} due to {consecutive_failures} consecutive failures.")
+                    break
+
                 print(f"\nProcessing d={d}, r={r}...")
                 
                 trial_samples = []
@@ -102,6 +113,11 @@ def analyze_sample_complexity():
                             rate_err, weight_err, _, _ = compute_error(lambdas_true, pi, omega_hat, a_k)
                             avg_err = (rate_err + weight_err) / 2.0
                             
+                        # Log intermediate result (every sample size checked)
+                            success_step = (avg_err <= target_error)
+                            f.write(f"{d}, {r}, {trial_idx+1}, {n}, {rate_err:.4f}, {weight_err:.4f}, {elapsed:.4f}, {int(success_step)}\n")
+                            f.flush()
+
                             # Track best (now based on Average Error)
                             if avg_err < best_avg_local:
                                 best_avg_local = avg_err
@@ -110,7 +126,7 @@ def analyze_sample_complexity():
                                 final_t = elapsed
 
                             # Success check (Average Error <= Target)
-                            if avg_err <= target_error:
+                            if success_step:
                                 found_n = n
                                 success = True
                                 final_rate = rate_err
@@ -155,8 +171,14 @@ def analyze_sample_complexity():
                 
                 # Determine overall success:
                 # If median samples is saturated, then "Fail". Or based on success rate?
-                # Let's say if success rate > 0.5, we consider it a success.
-                overall_success = (success_rate >= 0.5)
+                # Let's say if success rate >= threshold, we consider it a success.
+                overall_success = (success_rate >= success_threshold)
+                
+                # Update consecutive failures counter for early r-loop stopping
+                if overall_success:
+                    consecutive_failures = 0
+                else:
+                    consecutive_failures += 1
                 
                 med_print = f"{med_samples:.0f}"
                 if med_samples > max_n:
@@ -164,11 +186,8 @@ def analyze_sample_complexity():
                 
                 print(f"  => RESULT: Median Samples={med_print}, Success Rate={success_rate*100:.0f}%")
                 
-                # Log to file (keep numeric for consistency, or string?)
-                # user sees log file too. Let's saturate it at max_n in log or keep as is?
-                # Let's keep numeric in CSV for parsing, but maybe cap at max_n for plotting aesthetics?
-                # Actually, 1.5*max_n is good for heatmap contrast.
-                f.write(f"{d}, {r}, {med_samples}, {med_rate_err:.4f}, {med_weight_err:.4f}, {med_time:.4f}, {success_rate:.2f}\n")
+                # Log summary Row
+                f.write(f"{d}, {r}, Median, {med_samples}, {med_rate_err:.4f}, {med_weight_err:.4f}, {med_time:.4f}, {success_rate:.2f}\n")
                 f.flush()
                 
                 results.append({
@@ -224,8 +243,8 @@ def analyze_sample_complexity():
 
     plt.tight_layout()
     plt.subplots_adjust(top=0.92)
-    plt.savefig(os.path.join(log_dir, "sample_complexity_grid.png"))
-    print(f"\nGrid Search Complete. Plots saved to {log_dir}/sample_complexity_grid.png")
+    plt.savefig(os.path.join(log_dir, "sample_complexity.png"))
+    print(f"\nGrid Search Complete. Plots saved to {log_dir}/sample_complexity.png")
 
 if __name__ == "__main__":
     analyze_sample_complexity()
