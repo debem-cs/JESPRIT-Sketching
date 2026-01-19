@@ -14,6 +14,11 @@ setup(
     
     # Specify dependencies
     install_requires=[
-        'numpy','matplotlib'
+        'numpy',
+        'matplotlib',
+        'scipy',
+        'pandas',
+        'seaborn',
+        'joblib'
     ],
 )
