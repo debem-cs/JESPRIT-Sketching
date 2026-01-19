@@ -67,7 +67,7 @@ def analyze_sample_complexity():
                     
                     # 1. Generate Ground Truth
                     try:
-                        A = np.random.randint(0, 100, size=(d, r))
+                        A = np.random.randint(0, 10000, size=(d, r))
                         z = np.eye(r)
                         pi = np.random.rand(r)
                         pi = pi / np.sum(pi)
