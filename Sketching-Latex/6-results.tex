@@ -26,8 +26,8 @@ Simulations were conducted only while the success rate remained above $70\%$. If
 
 We compared the sample complexity for two scenarios:
 \begin{enumerate}
-    \item \textbf{Small Range}: Rates $A$ drawn from $[0, 100]$.
-    \item \textbf{Large Range}: Rates $A$ drawn from $[0, 10000]$.
+    \item \textbf{Small Range}: Rates $A$ randomly drawn from $[0, 100]$.
+    \item \textbf{Large Range}: Rates $A$ randomly drawn from $[0, 10000]$.
 \end{enumerate}
 
 Figures \ref{fig:sample_complexity_100} and \ref{fig:sample_complexity_10000} show the success rate (percentage of trials that met the $10\%$ error threshold) for each configuration. The results indicate that a larger range of values in $A$ improves the recoverability of the latent factors. With a larger dynamic range, the "directions" in the count space are more distinct, essentially providing a higher effective signal-to-noise ratio for the subspace estimation. This allows the algorithm to correctly discover more latent factors (higher $r$) for a given sample size compared to the small range scenario.
@@ -40,13 +40,13 @@ Furthermore, the results suggest that the sample complexity depends primarily on
     \centering
     \begin{minipage}{\textwidth}
         \centering
-        \includegraphics[width=\textwidth,height=0.45\textheight,keepaspectratio]{imgs/evaluate_parameters_with_unwrapping.png}
+        \includegraphics[width=\textwidth,height=0.43\textheight,keepaspectratio]{imgs/evaluate_parameters_with_unwrapping.png}
         \caption*{With Phase Unwrapping}
     \end{minipage}
     \vfill
     \begin{minipage}{\textwidth}
         \centering
-        \includegraphics[width=\textwidth,height=0.45\textheight,keepaspectratio]{imgs/evaluate_parameters_without_unwrapping.png}
+        \includegraphics[width=\textwidth,height=0.43\textheight,keepaspectratio]{imgs/evaluate_parameters_without_unwrapping.png}
         \caption*{Without Phase Unwrapping}
     \end{minipage}
     \caption{Comparison of estimation error with and without phase unwrapping. The unwrapped version (bottom) shows sensitivity to $\Delta$ but robustness to $M$ and $S$.}
@@ -59,14 +59,14 @@ Furthermore, the results suggest that the sample complexity depends primarily on
     \centering
     \begin{minipage}{\textwidth}
         \centering
-        \includegraphics[width=\textwidth,height=0.45\textheight,keepaspectratio]{imgs/sample_complexity_0_to_100.png}
+        \includegraphics[width=\textwidth,height=0.43\textheight,keepaspectratio]{imgs/sample_complexity_0_to_100.png}
         \caption{Sample Complexity for $A \in {[0, 100]}$.}
         \label{fig:sample_complexity_100}
     \end{minipage}
     \vfill
     \begin{minipage}{\textwidth}
         \centering
-        \includegraphics[width=\textwidth,height=0.45\textheight,keepaspectratio]{imgs/sample_complexity_0_to_10000.png}
+        \includegraphics[width=\textwidth,height=0.43\textheight,keepaspectratio]{imgs/sample_complexity_0_to_10000.png}
         \caption{Sample Complexity for $A \in {[0, 10000]}$.}
         \label{fig:sample_complexity_10000}
     \end{minipage}
