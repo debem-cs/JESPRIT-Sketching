@@ -3,41 +3,26 @@
 \subsection{Phase Unwrapping Impact}
 In the theoretical derivation of ESPRIT-based methods, phase unwrapping is often cited as a necessary step to resolve the ambiguity of the frequency estimates when the phase arguments exceed the $(-\pi, \pi]$ range. However, we found that applying phase unwrapping in the JESPRIT context actually hurts performance.
 
-Figure \ref{fig:unwrapping_comparison} compares the parameter estimation error with and without phase unwrapping enabled. It can be observed that the unwrapped version consistently yields higher error rates and is robust over a smaller range of grid scale values ($\Delta$).
+Figure \ref{fig:unwrapping_comparison} compares the parameter estimation error with (left) and without (right) phase unwrapping enabled. For this experiment, the mixing matrix $A$ was fixed to a $3 \times 3$ matrix. It can be observed that the unwrapped version consistently yields higher error rates and is robust over a smaller range of grid scale values ($\Delta$).
 
-\begin{figure}[h]
-    \centering
-    % \includegraphics[width=0.8\textwidth]{path/to/unwrapping_comparison.png}
-    \fbox{\parbox{0.8\textwidth}{
-        \centering
-        \vspace{2cm}
-        [Placeholder: Comparison of Error vs $\Delta$ with and without Phase Unwrapping] 
-        \vspace{2cm}
-    }}
-    \caption{Comparison of estimation error with and without phase unwrapping. The unwrapped version (red) shows higher error and instability compared to the wrapped version (blue).}
-    \label{fig:unwrapping_comparison}
-\end{figure}
+\subsection{Parameter Sensitivity Analysis}
+We evaluate the sensitivity of the JESPRIT algorithm (without phase unwrapping) to its key hyperparameters: the number of directions $M$, the number of snapshots $S$, the number of sample points per line $N$, and the grid scale $\Delta$.
 
-\subsection{Optimal Grid Scale ($\Delta$)}
-The choice of the grid scale parameter $\Delta$ is critical for the performance of the algorithm. Experiments demonstrate that there is a distinct "sweet spot" for this parameter.
+As shown in the subplots of Figure \ref{fig:unwrapping_comparison} (particularly the "Without Phase Unwrapping" panel):
+\begin{itemize}
+    \item \textbf{Directions ($M$) and Snapshots ($S$):} The estimation error remains stable and low as $M$ and $S$ increase beyond the sufficient lower bounds (related to $d$ and $r$). This suggests that the algorithm is robust to over-sampling in these dimensions, and performance does not degrade with larger values, mainly for $M$.
+    \item \textbf{Samples per Line ($N$):} Unlike $M$ and $S$, increasing $N$ excessively can lead to performance degradation. While a certain minimum number of points is required for accuracy, very large $N$ effectively extends the sampling range into regions where the phase arguments may exceed the principal range, causing wrapping issues when $\Delta$ is fixed.
+    \item \textbf{Grid Scale ($\Delta$):} This parameter exhibits a distinct "sweet spot." As discussed previously, the error is minimized when $\Delta \approx 1/\max(A)$. Deviating significantly from this value increases the estimation error.
+\end{itemize}
 
-Figure \ref{fig:error_vs_delta} illustrates the estimation error as a function of the grid scale $\Delta$. The error plummets significantly when $\Delta \approx 1/\max(A)$, where $\max(A)$ corresponds to the maximum expected rate in the system. 
-
-\begin{figure}[h]
-    \centering
-    % \includegraphics[width=0.8\textwidth]{path/to/error_vs_delta.png}
-    \fbox{\parbox{0.8\textwidth}{
-        \centering
-        \vspace{2cm}
-        [Placeholder: Error vs $\Delta$ showing minimum at $1/\max(A)$]
-        \vspace{2cm}
-    }}
-    \caption{Estimation error as a function of grid scale $\Delta$. The global minimum occurs near $\Delta = 1/\max(A)$.}
-    \label{fig:error_vs_delta}
-\end{figure}
+These results highlight that while $M$ and $S$ can be chosen generously, $N$ and particularly $\Delta$ require careful tuning to match the signal characteristics.
 
 \subsection{Sample Complexity and Rate Range}
 Finally, we analyze the sample complexity of JESPRIT—specifically, how many samples are required to successfully recover the latent factors as the problem dimensions grow. We also investigate the impact of the dynamic range of the rates in $A$.
+
+To quantify this, we performed a grid search over varying ambient dimensions $d \in [1, 10]$ and ranks $r \in [1, 10]$. For each $(d, r)$ pair, we conducted 7 independent random trials. A trial was considered successful if the average Mean Relative Error (MRE) for both rates and weights was less than or equal to $10\%$. We tested sample sizes of $N_s \in \{1k, 10k, 50k, 100k\}$.
+
+Simulations were conducted only while the success rate remained above $70\%$. If the success rate dropped below this threshold, further simulations for higher ranks $r$ were halted, as failure was deemed certain. This explains the absence of data points for higher $r$ values in the heatmaps.
 
 We compared the sample complexity for two scenarios:
 \begin{enumerate}
@@ -45,36 +30,45 @@ We compared the sample complexity for two scenarios:
     \item \textbf{Large Range}: Rates $A$ drawn from $[0, 10000]$.
 \end{enumerate}
 
-Figures \ref{fig:sample_complexity_100} and \ref{fig:sample_complexity_10000} show the success rate heatmaps for varying dimensions $d$ and ranks $r$. The results indicate that a larger range of values in $A$ improves the recoverability of the latent factors. With a larger dynamic range, the "directions" in the count space are more distinct, essentially providing a higher effective signal-to-noise ratio for the subspace estimation. This allows the algorithm to correctly discover more latent factors (higher $r$) for a given sample size compared to the small range scenario.
+Figures \ref{fig:sample_complexity_100} and \ref{fig:sample_complexity_10000} show the success rate (percentage of trials that met the $10\%$ error threshold) for each configuration. The results indicate that a larger range of values in $A$ improves the recoverability of the latent factors. With a larger dynamic range, the "directions" in the count space are more distinct, essentially providing a higher effective signal-to-noise ratio for the subspace estimation. This allows the algorithm to correctly discover more latent factors (higher $r$) for a given sample size compared to the small range scenario.
 
 Furthermore, the results suggest that the sample complexity depends primarily on the number of latent factors $r$, rather than the ambient dimension $d$. As observed in the heatmaps, increasing $d$ while keeping $r$ constant results in a negligible increase in the sample size required for successful recovery.
 
-\begin{figure}[h]
+\clearpage
+
+\begin{figure}[p]
     \centering
-    \begin{minipage}{0.48\textwidth}
+    \begin{minipage}{\textwidth}
         \centering
-        % \includegraphics[width=\textwidth]{path/to/heatmap_100.png}
-        \fbox{\parbox{\textwidth}{
-            \centering
-            \vspace{1.5cm}
-            [Placeholder: Heatmap for $A \in {[0, 100]}$]
-            \vspace{1.5cm}
-        }}
+        \includegraphics[width=\textwidth,height=0.45\textheight,keepaspectratio]{imgs/evaluate_parameters_with_unwrapping.png}
+        \caption*{With Phase Unwrapping}
+    \end{minipage}
+    \vfill
+    \begin{minipage}{\textwidth}
+        \centering
+        \includegraphics[width=\textwidth,height=0.45\textheight,keepaspectratio]{imgs/evaluate_parameters_without_unwrapping.png}
+        \caption*{Without Phase Unwrapping}
+    \end{minipage}
+    \caption{Comparison of estimation error with and without phase unwrapping. The unwrapped version (bottom) shows sensitivity to $\Delta$ but robustness to $M$ and $S$.}
+    \label{fig:unwrapping_comparison}
+\end{figure}
+
+\clearpage
+
+\begin{figure}[p]
+    \centering
+    \begin{minipage}{\textwidth}
+        \centering
+        \includegraphics[width=\textwidth,height=0.45\textheight,keepaspectratio]{imgs/sample_complexity_0_to_100.png}
         \caption{Sample Complexity for $A \in {[0, 100]}$.}
         \label{fig:sample_complexity_100}
     \end{minipage}
-    \hfill
-    \begin{minipage}{0.48\textwidth}
+    \vfill
+    \begin{minipage}{\textwidth}
         \centering
-        % \includegraphics[width=\textwidth]{path/to/heatmap_10000.png}
-        \fbox{\parbox{\textwidth}{
-            \centering
-            \vspace{1.5cm}
-            [Placeholder: Heatmap for $A \in {[0, 10000]}$]
-            \vspace{1.5cm}
-        }}
+        \includegraphics[width=\textwidth,height=0.45\textheight,keepaspectratio]{imgs/sample_complexity_0_to_10000.png}
         \caption{Sample Complexity for $A \in {[0, 10000]}$.}
         \label{fig:sample_complexity_10000}
     \end{minipage}
-    \caption{Comparison of Sample Complexity for different rate ranges. The larger range (right) allows for successful recovery of higher ranks.}
+    \caption{Comparison of Sample Complexity for different rate ranges. The larger range (bottom) allows for successful recovery of higher ranks.}
 \end{figure}
