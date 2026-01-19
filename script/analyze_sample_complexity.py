@@ -13,7 +13,7 @@ def analyze_sample_complexity():
     d_range = list(range(1, max_d + 1)) 
     r_range = list(range(1, max_d + 1)) 
     
-    n_trials = 7                       # Number of random trials per (d, r) to compute median
+    n_trials = 7                       # Number of random trials per (d, r) to compute avg
     target_error = 0.10                # 10% error threshold (Average MRE)
     patience = 2                       # Early stopping patience
     
@@ -21,7 +21,7 @@ def analyze_sample_complexity():
     sample_steps = [1000, 10000, 50000, 100000]
     max_n = sample_steps[-1]
     
-    print(f"Starting Grid Search Sample Complexity Analysis (Median of {n_trials} trials)")
+    print(f"Starting Grid Search Sample Complexity Analysis (avg of {n_trials} trials)")
     print(f"Target Average Error: {target_error}")
     print(f"Dimensions d: {d_range}")
     print(f"Ranks r: {r_range} (where r <= d)")
@@ -67,7 +67,7 @@ def analyze_sample_complexity():
                     
                     # 1. Generate Ground Truth
                     try:
-                        A = np.random.randint(0, 10000, size=(d, r))
+                        A = np.random.randint(0, 100, size=(d, r))
                         z = np.eye(r)
                         pi = np.random.rand(r)
                         pi = pi / np.sum(pi)
