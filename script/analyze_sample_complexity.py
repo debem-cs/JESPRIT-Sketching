@@ -9,11 +9,11 @@ import time
 
 def analyze_sample_complexity():
     # Configuration
-    max_d = 8
+    max_d = 10
     d_range = list(range(1, max_d + 1)) 
     r_range = list(range(1, max_d + 1)) 
     
-    n_trials = 5                       # Number of random trials per (d, r) to compute median
+    n_trials = 7                       # Number of random trials per (d, r) to compute median
     target_error = 0.10                # 10% error threshold (Average MRE)
     patience = 2                       # Early stopping patience
     
@@ -34,8 +34,8 @@ def analyze_sample_complexity():
     # Data storage for plotting
     results = []
 
-    MAX_CONSECUTIVE_FAILURES = 2
-    success_threshold = 0.6            # Threshold for success rate (fraction of trials passed)
+    MAX_CONSECUTIVE_FAILURES = 1
+    success_threshold = 0.7   # Threshold for success rate (fraction of trials passed)
     
     with open(os.path.join(log_dir, "sample_complexity.txt"), "w") as f:
         f.write("d, r, Trial, Samples, Rate Err, Weight Err, Time, Success\n")
@@ -67,7 +67,7 @@ def analyze_sample_complexity():
                     
                     # 1. Generate Ground Truth
                     try:
-                        A = np.random.randint(20, 1000, size=(d, r))
+                        A = np.random.randint(0, 100, size=(d, r))
                         z = np.eye(r)
                         pi = np.random.rand(r)
                         pi = pi / np.sum(pi)
@@ -162,17 +162,27 @@ def analyze_sample_complexity():
                     status = "PASS" if success else "FAIL"
                     print(f" -> {status} (n={found_n if found_n else '>'+str(max_n)})")
 
-                # --- Compute Medians across trials ---
-                med_samples = np.median(trial_samples)
-                med_rate_err = np.median(trial_rate_errs)
-                med_weight_err = np.median(trial_weight_errs)
-                med_time = np.median(trial_times)
+                # --- Compute Stats (Average of Successful Runs) ---
                 success_rate = np.mean(trial_successes)
                 
-                # Determine overall success:
-                # If median samples is saturated, then "Fail". Or based on success rate?
-                # Let's say if success rate >= threshold, we consider it a success.
+                # Determine overall success based on threshold
                 overall_success = (success_rate >= success_threshold)
+                
+                # Filter indices of successful runs
+                success_indices = [i for i, s in enumerate(trial_successes) if s]
+                
+                if success_indices:
+                    # Compute average of metrics for SUCCESSFUL runs only
+                    avg_samples = np.mean([trial_samples[i] for i in success_indices])
+                    avg_rate_err = np.mean([trial_rate_errs[i] for i in success_indices])
+                    avg_weight_err = np.mean([trial_weight_errs[i] for i in success_indices])
+                    avg_time = np.mean([trial_times[i] for i in success_indices])
+                else:
+                    # Fallback if NO runs succeeded (average of all failed runs)
+                    avg_samples = np.mean(trial_samples)
+                    avg_rate_err = np.mean(trial_rate_errs)
+                    avg_weight_err = np.mean(trial_weight_errs)
+                    avg_time = np.mean(trial_times)
                 
                 # Update consecutive failures counter for early r-loop stopping
                 if overall_success:
@@ -180,24 +190,24 @@ def analyze_sample_complexity():
                 else:
                     consecutive_failures += 1
                 
-                med_print = f"{med_samples:.0f}"
-                if med_samples > max_n:
-                    med_print = f">{max_n}"
+                avg_print = f"{avg_samples:.0f}"
+                if avg_samples > max_n:
+                    avg_print = f">{max_n}"
                 
-                print(f"  => RESULT: Median Samples={med_print}, Success Rate={success_rate*100:.0f}%")
+                print(f"  => RESULT: Avg Samples(Succ)={avg_print}, Success Rate={success_rate*100:.0f}%")
                 
                 # Log summary Row
-                f.write(f"{d}, {r}, Median, {med_samples}, {med_rate_err:.4f}, {med_weight_err:.4f}, {med_time:.4f}, {success_rate:.2f}\n")
+                f.write(f"{d}, {r}, Average, {avg_samples}, {avg_rate_err:.4f}, {avg_weight_err:.4f}, {avg_time:.4f}, {success_rate:.2f}\n")
                 f.flush()
                 
                 results.append({
                     'd': d, 
                     'r': r, 
-                    'samples': med_samples,
-                    'rate_err': med_rate_err,
-                    'weight_err': med_weight_err,
-                    'avg_err': (med_rate_err + med_weight_err) / 2.0,
-                    'time': med_time,
+                    'samples': avg_samples,
+                    'rate_err': avg_rate_err,
+                    'weight_err': avg_weight_err,
+                    'avg_err': (avg_rate_err + avg_weight_err) / 2.0,
+                    'time': avg_time,
                     'success': overall_success,
                     'success_rate': success_rate
                 })
@@ -215,13 +225,13 @@ def analyze_sample_complexity():
     pivot_time = df.pivot(index='d', columns='r', values='time')
 
     fig, axes = plt.subplots(2, 2, figsize=(18, 14))
-    fig.suptitle(f'JESPRIT Sample Complexity (Median of {n_trials} Trials)', fontsize=16)
+    fig.suptitle(f'JESPRIT Sample Complexity (Avg of Successful Runs over {n_trials} Trials)', fontsize=16)
 
-    # Plot 1: Median Samples
+    # Plot 1: Avg Samples
     ax = axes[0, 0]
     sns.heatmap(pivot_samples, ax=ax, cmap="viridis", annot=True, fmt=".0f", 
-                cbar_kws={'label': 'Samples Needed'})
-    ax.set_title(f'Min Samples for {target_error} Avg Error (Rate and Weight)')
+                cbar_kws={'label': 'Avg Samples (Success)'})
+    ax.set_title(f'Avg Samples for {target_error} Error')
     
     # Plot 2: Success Rate
     ax = axes[0, 1]
@@ -232,14 +242,14 @@ def analyze_sample_complexity():
     # Plot 3: Average Error
     ax = axes[1, 0]
     sns.heatmap(pivot_error, ax=ax, cmap="magma_r", annot=True, fmt=".2f", 
-                cbar_kws={'label': 'Average Error (Rate + Weight)/2'})
-    ax.set_title('Avg Error')
+                cbar_kws={'label': 'Avg Error (Success Only)'})
+    ax.set_title('Avg Error (Rate + Weight)/2')
 
-    # Plot 4: Median Execution Time
+    # Plot 4: Avg Execution Time
     ax = axes[1, 1]
     sns.heatmap(pivot_time, ax=ax, cmap="coolwarm", annot=True, fmt=".2f", 
-                cbar_kws={'label': 'Time (s)'})
-    ax.set_title('Execution Time')
+                cbar_kws={'label': 'Avg Time (s)'})
+    ax.set_title('Avg Execution Time (Success Only)')
 
     plt.tight_layout()
     plt.subplots_adjust(top=0.92)
