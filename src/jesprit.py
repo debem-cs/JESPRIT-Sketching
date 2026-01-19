@@ -89,6 +89,7 @@ def jesprit(X, r, M, S, N, delta):
     # We recover phases and solve inverse problem
     
     phis = np.angle(mus) # (M, r)
+    phis = np.unwrap(phis, axis=0) # Experimental: Phase Unwrapping (usually degrades performance)
     
     # Assuming small delta, no wrapping handling needed (or very minimal).
     # omega_hat = 1/delta * pinv(U_directions) @ phis
