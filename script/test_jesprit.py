@@ -23,7 +23,7 @@ def test_jesprit(num_runs=10):
     # Calculate the true lambda rates for each component
     lambdas_true = A @ z
 
-    n_samples = 5000
+    n_samples = 20000
     delta = 1/np.max(lambdas_true)
     
     d, m = A.shape
@@ -69,8 +69,8 @@ def test_jesprit(num_runs=10):
     np.set_printoptions(precision=2, suppress=True)
 
     print("\n--- Summary Statistics ---")
-    print(f"Rate Error: Mean = {avg_rate_error:.2f}, Std = {std_rate_error:.2f}")
-    print(f"Weight Error: Mean = {avg_weight_error:.2f}, Std = {std_weight_error:.2f}")
+    print(f"Mean Relative Rate Error: Mean = {avg_rate_error:.4f}, Std = {std_rate_error:.4f}")
+    print(f"Mean Relative Weight Error: Mean = {avg_weight_error:.4f}, Std = {std_weight_error:.4f}")
 
     # Ensure log directory exists
     log_dir = "log"
@@ -110,8 +110,8 @@ def test_jesprit(num_runs=10):
         
         for i in range(num_runs):
             f.write(f"--- Run {i+1} ---\n")
-            f.write(f"Rate Error: {rate_errors[i]:.2f}\n")
-            f.write(f"Weight Error: {weight_errors[i]:.2f}\n")
+            f.write(f"Mean Relative Rate Error: {rate_errors[i]:.4f}\n")
+            f.write(f"Mean Relative Weight Error: {weight_errors[i]:.4f}\n")
             f.write(f"Estimated Rates (omega_hat):\n{omega_hats[i]}\n")
             f.write(f"Rate Diff (GT - Est):\n{lambdas_true - omega_hats[i]}\n")
             with np.printoptions(precision=1):

@@ -35,10 +35,10 @@ def evaluate_parameters():
     
     # Ranges to test
     param_ranges = {
-        'M': np.linspace(1, 40, 10, dtype=int),
-        'S': np.linspace(1, 40, 10, dtype=int),
-        'N': np.linspace(2, 40, 10, dtype=int),
-        'delta': np.linspace(0.001, 0.02, 10)
+        'M': np.linspace(d-1, 50, 50, dtype=int),
+        'S': np.linspace(r-1, 50, 50, dtype=int),
+        'N': np.linspace(r-1, 50, 50, dtype=int),
+        'delta': np.linspace(delta/10, 10*delta, 50)
     }
 
     results = {}
@@ -91,8 +91,8 @@ def evaluate_parameters():
                     
                     # Write to file
                     f.write(f"\nParameter {param_name} = {val}\n")
-                    f.write(f"Rate Error: {rate_error:.2f}\n")
-                    f.write(f"Weight Error: {weight_error:.2f}\n")
+                    f.write(f"Mean Relative Rate Error: {rate_error:.4f}\n")
+                    f.write(f"Mean Relative Weight Error: {weight_error:.4f}\n")
                     f.write(f"Estimated Rates (omega_hat):\n{omega_aligned}\n")
                     f.write(f"Rate Diff (GT - Est):\n{lambda_true - omega_aligned}\n")
                     with np.printoptions(precision=1):

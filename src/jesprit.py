@@ -150,25 +150,38 @@ def compute_error(lambda_true, pi_true, lambda_est, pi_est):
     r = len(pi_true)
     
     # Cost matrix C[i, j] = error if true_component_i matches est_component_j
-    # We define error as normalized rate error + normalized weight error
+    # We define error as Mean Relative Error (MRE) for rates + MRE for weights
     
     # lambda_true: (d, r)
     # lambda_est: (d, r)
-    
-    norm_lambda = np.linalg.norm(lambda_true)
-    norm_pi = np.linalg.norm(pi_true)
     
     C = np.zeros((r, r))
     
     for i in range(r): # True component index
         for j in range(r): # Estimated component index
-            # Rate error term
-            diff_rate = lambda_true[:, i] - lambda_est[:, j]
-            term_rate = np.linalg.norm(diff_rate) / norm_lambda
+            # Rate error term (Mean Relative Error over d elements)
+            # diff_rate = |true - est| / true
+            true_vec = lambda_true[:, i]
+            est_vec = lambda_est[:, j]
+            
+            # Safe division
+            rel_diff = np.divide(
+                np.abs(true_vec - est_vec),
+                np.abs(true_vec),
+                out=np.zeros_like(true_vec),
+                where=true_vec!=0
+            )
+            # If true_vec has zeros, the relative error for those elements is 0 (perfect match assumed or ignored)
+            
+            term_rate = np.mean(rel_diff)
             
             # Weight error term
-            diff_weight = pi_true[i] - pi_est[j]
-            term_weight = np.abs(diff_weight) / norm_pi
+            true_pi = pi_true[i]
+            est_pi = pi_est[j]
+            if true_pi != 0:
+                term_weight = np.abs(true_pi - est_pi) / np.abs(true_pi)
+            else:
+                term_weight = 0.0
             
             C[i, j] = term_rate + term_weight
             
@@ -185,10 +198,22 @@ def compute_error(lambda_true, pi_true, lambda_est, pi_est):
     pi_est_aligned = pi_est[best_perm]
     
     # Recalculate errors with best permutation
-    # Rate error
-    rate_err = np.linalg.norm(lambda_true - lambda_est_aligned) / norm_lambda
+    # Rate error (Mean Relative Error over all elements d*r)
+    rel_diff_matrix = np.divide(
+        np.abs(lambda_true - lambda_est_aligned),
+        np.abs(lambda_true),
+        out=np.zeros_like(lambda_true),
+        where=lambda_true!=0
+    )
+    rate_err = np.mean(rel_diff_matrix)
     
-    # Weight error
-    weight_err = np.linalg.norm(pi_true - pi_est_aligned) / norm_pi
+    # Weight error (Mean Relative Error over r elements)
+    rel_diff_weights = np.divide(
+        np.abs(pi_true - pi_est_aligned),
+        np.abs(pi_true),
+        out=np.zeros_like(pi_true),
+        where=pi_true!=0
+    )
+    weight_err = np.mean(rel_diff_weights)
             
     return rate_err, weight_err, lambda_est_aligned, pi_est_aligned
