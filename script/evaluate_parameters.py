@@ -18,7 +18,7 @@ def evaluate_parameters():
     d, _ = A.shape
     r = np.size(z, 1)
 
-    n_samples = 2000
+    n_samples = 5000
     
     # Generate data
     X, lambda_true = generate_mixed_poisson_samples(A, pi, z, n_samples)
@@ -35,9 +35,9 @@ def evaluate_parameters():
     
     # Ranges to test
     param_ranges = {
-        'M': np.linspace(d-1, 50, 50, dtype=int),
-        'S': np.linspace(r-1, 50, 50, dtype=int),
-        'N': np.linspace(r-1, 50, 50, dtype=int),
+        'M': np.linspace(d-1, 50, 50-(d-1)+1, dtype=int),
+        'S': np.linspace(r-1, 50, 50-(r-1)+1, dtype=int),
+        'N': np.linspace(r-1, 50, 50-(r-1)+1, dtype=int),
         'delta': np.linspace(delta/10, 10*delta, 50)
     }
 

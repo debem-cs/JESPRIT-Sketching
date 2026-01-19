@@ -7,16 +7,20 @@ import time
 
 def analyze_sample_complexity():
     # Configuration
-    d_range = [4, 5, 6, 8] # Dimensions to test
-    target_rate_error = 0.10           # 10% error threshold (normalized L2)
+    d_range = np.arange(1, 9, 1)      # Dimensions to test
+    target_rate_error = 0.10           # 10% error threshold (MRE)
+    target_weight_error = 0.10         # 10% error threshold (MRE)
+    patience = 2                       # Number of consecutive error increases before stopping early
     
     # Sample sizes to test (logarithmic scale)
-    sample_steps = [1000, 2500, 5000, 10000, 20000, 40000, 80000, 160000, 320000]
+    sample_steps = [1000, 5000, 10000, 25000, 50000, 75000, 100000, 150000, 200000]
     
     samples_needed = []
     
     print(f"Starting Sample Complexity Analysis")
     print(f"Target Rate Error: {target_rate_error}")
+    print(f"Target Weight Error: {target_weight_error}")
+    print(f"Patience: {patience} consecutive increases")
     print(f"Dimensions to test: {d_range}")
     print("-" * 50)
 
@@ -64,7 +68,6 @@ def analyze_sample_complexity():
             
             # Generate a large pool of data first to be efficient?
             # Max samples needed is sample_steps[-1]
-            # If we stop early, we waste generation, but fine.
             max_n = sample_steps[-1]
             print(f"  Generating max pool of {max_n} samples...")
             X_pool, _ = generate_mixed_poisson_samples(A, pi, z, max_n)
@@ -78,7 +81,6 @@ def analyze_sample_complexity():
                 
                 try:
                     # Run JESPRIT
-                    # Suppress print output from jesprit/pgf if any
                     omega_hat, a_k = jesprit(X_subset, r, M, S, N, delta)
                     
                     elapsed = time.time() - start_time
@@ -86,27 +88,27 @@ def analyze_sample_complexity():
                     # Compute Error
                     rate_err, weight_err, _, _ = compute_error(lambdas_true, pi, omega_hat, a_k)
                     
-                    print(f" Rate Err: {rate_err:.4f} ({elapsed:.2f}s)")
+                    print(f" Rate Err: {rate_err:.4f}, Weight Err: {weight_err:.4f} ({elapsed:.2f}s)")
                     
-                    # Update best
+                    # Update best (prioritize rate error for "best" tracking)
                     if rate_err < best_rate_err_for_d:
                         best_rate_err_for_d = rate_err
                         best_samples_for_d = n
                         final_weight_err = weight_err
                         final_time = elapsed
                     
-                    # Success Condition
-                    if rate_err <= target_rate_error:
+                    # Success Condition (AND operation)
+                    if rate_err <= target_rate_error and weight_err <= target_weight_error:
                         found_samples = n
                         final_rate_err = rate_err
+                        final_weight_err = weight_err
                         break
                     
-                    # Early Stopping Condition (User Request: if error is bigger twice)
-                    # Interpretation: Stop if error increases two times in a row.
+                    # Early Stopping Condition
                     if rate_err > prev_rate_err:
                         increase_count += 1
-                        if increase_count >= 2:
-                            print(f"  -> Stopping early: Error increased 2 times consecutively. Using best found: {best_samples_for_d} (Err: {best_rate_err_for_d:.4f})")
+                        if increase_count >= patience:
+                            print(f"  -> Stopping early: Rate Error increased {patience} times consecutively. Using best found: {best_samples_for_d} (Rate Err: {best_rate_err_for_d:.4f})")
                             found_samples = best_samples_for_d
                             final_rate_err = best_rate_err_for_d
                             break
@@ -122,23 +124,20 @@ def analyze_sample_complexity():
             if found_samples:
                 pass # Already set
             else:
-                # If we finished loop without hitting target and didn't break early,
-                # use the best we found.
                 found_samples = best_samples_for_d
                 final_rate_err = best_rate_err_for_d
-                print(f"  -> Finished samples. Best found: {found_samples} (Err: {final_rate_err:.4f})")
             
-            # Sanity check if best_samples_for_d is None (e.g. all failed)
+            # Sanity check
             if found_samples is None:
                 found_samples = max_n 
                 final_rate_err = 1.0
                 final_weight_err = 1.0
                 final_time = 0.0
 
-            if final_rate_err <= target_rate_error:
+            if final_rate_err <= target_rate_error and final_weight_err <= target_weight_error:
                  print(f"  -> SUCCESS: Requires {found_samples} samples.")
             else:
-                 print(f"  -> WARNING: Did not reach target {target_rate_error}. Best error: {final_rate_err:.4f}")
+                 print(f"  -> WARNING: Did not reach targets. Best Rate Err: {final_rate_err:.4f}, Best Weight Err: {final_weight_err:.4f}")
 
             samples_needed.append(found_samples)
             f.write(f"{d}, {r}, {found_samples}, {final_rate_err:.4f}, {final_weight_err:.4f}, {final_time:.4f}\n")
@@ -149,7 +148,7 @@ def analyze_sample_complexity():
     plt.plot(d_range, samples_needed, marker='o', linewidth=2)
     plt.xlabel("Dimension (d)")
     plt.ylabel("Required Samples")
-    plt.title(f"Sample Complexity of JESPRIT\nTarget Rate Error <= {target_rate_error*100}%")
+    plt.title(f"Sample Complexity of JESPRIT\nTarget Rate & Weight Error <= {target_rate_error*100}%")
     plt.grid(True, which="both", ls="-", alpha=0.5)
     
     # Check if we hit the ceiling

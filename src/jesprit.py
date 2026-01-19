@@ -155,35 +155,34 @@ def compute_error(lambda_true, pi_true, lambda_est, pi_est):
     # lambda_true: (d, r)
     # lambda_est: (d, r)
     
-    C = np.zeros((r, r))
+    # Validated Safe Division function for broadcasting
+    def safe_rel_diff(true_vals, est_vals):
+        # true_vals: (..., r, 1) or equivalent broadcast-ready shape
+        # est_vals:  (..., 1, r)
+        diff = np.abs(true_vals - est_vals)
+        denom = np.abs(true_vals)
+        return np.divide(diff, denom, out=np.zeros_like(diff), where=denom!=0)
+
+    # Rate Cost (r, r)
+    # lambda_true: (d, r) -> (d, r, 1)
+    lambda_true_exp = lambda_true[:, :, np.newaxis]
+    # lambda_est: (d, r) -> (d, 1, r)
+    lambda_est_exp = lambda_est[:, np.newaxis, :]
     
-    for i in range(r): # True component index
-        for j in range(r): # Estimated component index
-            # Rate error term (Mean Relative Error over d elements)
-            # diff_rate = |true - est| / true
-            true_vec = lambda_true[:, i]
-            est_vec = lambda_est[:, j]
-            
-            # Safe division
-            rel_diff = np.divide(
-                np.abs(true_vec - est_vec),
-                np.abs(true_vec),
-                out=np.zeros_like(true_vec),
-                where=true_vec!=0
-            )
-            # If true_vec has zeros, the relative error for those elements is 0 (perfect match assumed or ignored)
-            
-            term_rate = np.mean(rel_diff)
-            
-            # Weight error term
-            true_pi = pi_true[i]
-            est_pi = pi_est[j]
-            if true_pi != 0:
-                term_weight = np.abs(true_pi - est_pi) / np.abs(true_pi)
-            else:
-                term_weight = 0.0
-            
-            C[i, j] = term_rate + term_weight
+    # rel_diff_rate: (d, r, r)
+    rel_diff_rate = safe_rel_diff(lambda_true_exp, lambda_est_exp)
+    # Mean over dimension d -> (r, r)
+    C_rate = np.mean(rel_diff_rate, axis=0)
+
+    # Weight Cost (r, r)
+    # pi_true: (r,) -> (r, 1)
+    pi_true_exp = pi_true[:, np.newaxis]
+    # pi_est: (r,) -> (1, r)
+    pi_est_exp = pi_est[np.newaxis, :]
+    
+    C_weight = safe_rel_diff(pi_true_exp, pi_est_exp)
+    
+    C = C_rate + C_weight
             
     # Solve assignment problem
     # row_ind will be 0..r-1 (true components)

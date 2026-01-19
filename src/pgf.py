@@ -57,73 +57,72 @@ def sample_PGF(X, M, S, N, delta):
         The randomly generated base points, shape (M, S, d).
     """
 
+from joblib import Parallel, delayed
+
+def _compute_single_Z_l(l, u_l, p_l, N, S, d, delta, X):
+    # Pre-compute coordinates for this direction
+    u_l_resh = u_l.reshape(1, 1, d)
+    p_l_resh = p_l.reshape(1, S, d)
+    n_vec_resh = np.arange(N).reshape(N, 1, 1) # (N, 1, 1)
+
+    u_coords = n_vec_resh * u_l_resh + p_l_resh
+    
+    # t = 1 + j * delta * u_coords
+    t = 1.0 + 1j * delta * u_coords
+    
+    # log_t: (N, S, d)
+    log_t = np.log(t)
+    
+    # --- Batch Processing for Memory Efficiency ---
+    n_samples = X.shape[0]
+    batch_size = 10000 
+    Z_l_accum = np.zeros((N, S), dtype=complex)
+    
+    for i in range(0, n_samples, batch_size):
+        end = min(i + batch_size, n_samples)
+        X_batch = X[i:end, :] # (batch_size, d)
+        
+        # Transpose batch for dot product: (d, batch_size)
+        X_batch_T = X_batch.T
+        
+        # log_t: (N, S, d)
+        # X_batch_T: (d, batch_size)
+        # Result: (N, S, batch_size)
+        dot_product = log_t @ X_batch_T
+        
+        # Exponentiate and sum over batch
+        exp_values_batch = np.exp(dot_product)
+        Z_l_accum += np.sum(exp_values_batch, axis=2)
+        
+    # Average over all samples
+    Z_l = Z_l_accum / n_samples
+    return Z_l
+
+def sample_PGF(X, M, S, N, delta):
+    """
+    Generates measurement matrices by sampling the PGF along lines.
+    Optimized with Batch Processing (Memory) + Parallelization (Speed).
+    """
     d = X.shape[1]
 
     # Generate random direction vectors
     U_directions = np.random.randn(M, d)
-    
-    # Normalize each direction vector to have a unit norm.
     norms = np.linalg.norm(U_directions, axis=1, keepdims=True)
     U_directions = np.where(norms > 1e-10, U_directions / norms, U_directions)
 
-    # Generate base points
-    # IMPORTANT: For Global SVD / Joint ESPRIT, the base points (snapshots) must be
-    # shared across all directions to ensure the source signals are coherent.
-    # So we generate one set of base points and reuse it.
+    # Generate base points (shared)
     p_shared = np.random.randn(S, d)
-    # Broadcast to (M, S, d)
     p_base_points = np.tile(p_shared, (M, 1, 1))
-
-    # Pre-compute n vector for broadcasting
-    # shape (1, N, 1, 1)
-    n_vec = np.arange(N).reshape(1, N, 1) # (N, 1) for broadcasting against (S, d)? No.
     
-    # We will compute Z for each direction l separately to save memory
-    all_Z = []
-    
-    # Transpose X once for efficiency: (d, n_samples)
-    X_T = X.T
-    
-    for l in range(M):
-        # direction u_l: (d,)
-        u_l = U_directions[l] # (d,)
-        
-        # base points p_l: (S, d)
-        # p_l is the same for all l now (conceptually), but we take the slice
-        p_l = p_base_points[l] # (S, d)
-        
-        # We need to compute points P_lns = p_l_s + n * u_l
-        # target shape: (N, S, d)
-        
-        # Reshape u_l: (1, 1, d)
-        u_l_resh = u_l.reshape(1, 1, d)
-        
-        # Reshape p_l: (1, S, d)
-        p_l_resh = p_l.reshape(1, S, d)
-        
-        # n_vec reshaped: (N, 1, 1)
-        n_vec_resh = np.arange(N).reshape(N, 1, 1)
-        
-        # Compute u coordinates: (N, S, d)
-        u_coords = n_vec_resh * u_l_resh + p_l_resh
-        
-        # t = 1 + j * delta * u_coords
-        t = 1.0 + 1j * delta * u_coords
-        
-        # log_t: (N, S, d)
-        log_t = np.log(t)
-        
-        # Compute dot product with data X_T (d, n_samples)
-        # log_t is (N, S, d)
-        # Result is (N, S, n_samples)
-        dot_product = log_t @ X_T
-        
-        # Exponentiate
-        exp_values = np.exp(dot_product)
-        
-        # Mean over samples (axis 2) -> (N, S)
-        Z_l = np.mean(exp_values, axis=2)
-        
-        all_Z.append(Z_l)
+    # Parallel execution using threads (shared memory for X)
+    # backend="threading" avoids copying X which is crucial for large data
+    all_Z = Parallel(n_jobs=-1, prefer="threads")(
+        delayed(_compute_single_Z_l)(
+            l, 
+            U_directions[l], 
+            p_base_points[l], 
+            N, S, d, delta, X
+        ) for l in range(M)
+    )
         
     return all_Z, U_directions, p_base_points
