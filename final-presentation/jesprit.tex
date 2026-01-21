@@ -37,7 +37,7 @@
     \end{enumerate}
 \end{frame}
 
-\begin{frame}{Results: Robustness \& Phase Unwrapping}
+\begin{frame}{Results: Parameter Analysis \& Phase Unwrapping}
     \begin{columns}
         \column{0.5\textwidth}
         \centering
@@ -46,11 +46,17 @@
         
         \column{0.5\textwidth}
         \small
-        \textbf{Finding 1: Phase Unwrapping}
+        \textbf{1. Phase Unwrapping:}
         \begin{itemize}
-            \item Standard ESPRIT suggests unwrapping.
-            \item \textbf{Result:} Unwrapping \textit{increases} error in this PGF context.
-            \item Best performance at optimal scale $\Delta \approx 1/\max(A)$.
+            \item Unwrapping \textit{increases} error here.
+            \item Optimal scale: $\Delta \approx 1/\max(A)$.
+        \end{itemize}
+
+        \vspace{0.2cm}
+        \textbf{2. Parameter Sensitivity:}
+        \begin{itemize}
+            \item \textbf{Directions ($M$) \& Snapshots ($S$):} Robust to over-sampling.
+            \item \textbf{Samples ($N$):} Sensitive. Large $N$ causes aliasing/wrapping issues.
         \end{itemize}
     \end{columns}
 \end{frame}
