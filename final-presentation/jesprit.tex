@@ -1,0 +1,79 @@
+\section{JESPRIT for Mixed Poisson}
+
+\begin{frame}{Problem Formulation: Mixed Poisson Recovery}
+    \textbf{Goal:} Recover latent parameters of a Mixed Poisson distribution from count data.
+    \begin{itemize}
+        \item \textbf{Model:} $X \sim \sum_{k=1}^r \pi_k \text{Pois}(\bm{\lambda}_k)$
+        \item \textbf{Unknowns:} Rate matrix $\mathbf{A} = [\bm{\lambda}_1, \dots, \bm{\lambda}_r]$ and weights $\bm{\pi}$.
+    \end{itemize}
+    
+    \vspace{0.5cm}
+    \textbf{Challenge:} High-dimensional estimation from unlabeled samples.
+    
+    \vspace{0.2cm}
+    \textbf{Sketching Approach:}
+    \begin{enumerate}
+        \item Compute \textbf{Empirical PGF} at specific points: $\mathbf{t}(\mathbf{u}, n) = \mathbf{1} + j \Delta n \mathbf{u}$.
+        \item Map PGF samples to \textbf{Harmonic Retrieval} model.
+        \item Apply \textbf{JESPRIT} to recover parameters.
+    \end{enumerate}
+\end{frame}
+
+\begin{frame}{The JESPRIT Algorithm}
+    \textbf{Key Innovation: Global Subspace Estimation}
+    \begin{itemize}
+        \item Instead of processing each direction independently, we \textbf{stack} Hankel matrices from all directions into $\mathbf{X}_{\text{glob}}$.
+        \item \textbf{Global SVD:} $\mathbf{X}_{\text{glob}} \approx \mathbf{U}_{\text{glob}} \mathbf{\Sigma} \mathbf{V}^H$.
+        \item Ensures all directional subspaces $\hat{\mathbf{U}}_l$ share a \textbf{coherent basis}.
+    \end{itemize}
+
+    \vspace{0.3cm}
+    \textbf{Recovery Steps:}
+    \small
+    \begin{enumerate}
+        \item \textbf{RIMs:} Solve $\hat{\mathbf{U}}_{l, \uparrow} \mathbf{\Psi}_l \approx \hat{\mathbf{U}}_{l, \downarrow}$ for shifts.
+        \item \textbf{Joint Diagonalization:} Find $\mathbf{T}$ to diagonalize all $\mathbf{\Psi}_l$ simultaneously.
+        \item \textbf{Extraction:} Eigenvalues $\to$ Rates $\bm{\lambda}_k$. Least Squares $\to$ Probs $\bm{\pi}$.
+    \end{enumerate}
+\end{frame}
+
+\begin{frame}{Results: Robustness \& Phase Unwrapping}
+    \begin{columns}
+        \column{0.5\textwidth}
+        \centering
+        \includegraphics[width=\textwidth,height=0.5\textheight,keepaspectratio]{imgs/evaluate_parameters_without_unwrapping.png}
+        \captionof{figure}{Error without Unwrapping}
+        
+        \column{0.5\textwidth}
+        \small
+        \textbf{Finding 1: Phase Unwrapping}
+        \begin{itemize}
+            \item Standard ESPRIT suggests unwrapping.
+            \item \textbf{Result:} Unwrapping \textit{increases} error in this PGF context.
+            \item Best performance at optimal scale $\Delta \approx 1/\max(A)$.
+        \end{itemize}
+    \end{columns}
+\end{frame}
+
+\begin{frame}{Results: Sample Complexity}
+    \begin{columns}
+        \column{0.5\textwidth}
+        \centering
+        \includegraphics[width=\textwidth,height=0.5\textheight,keepaspectratio]{imgs/sample_complexity_0_to_10000.png}
+        \captionof{figure}{Success Rate (Large Range)}
+        
+        \column{0.5\textwidth}
+        \small
+        \textbf{Finding 2: Dynamic Range}
+        \begin{itemize}
+            \item Larger rate range $[0, 10^4]$ improves recovery.
+            \item Distinct "directions" in count space act as higher SNR.
+        \end{itemize}
+        
+        \vspace{0.2cm}
+        \textbf{Scalability:}
+        \begin{itemize}
+            \item Sample complexity depends on Rank $r$, not Dimension $d$.
+        \end{itemize}
+    \end{columns}
+\end{frame}
