@@ -19,6 +19,29 @@
     \end{enumerate}
 \end{frame}
 
+\begin{frame}{Sampling Strategy: The Empirical PGF}
+    \textbf{Why Empirical PGF?}
+    \begin{itemize}
+        \item We lack the true distribution, but we have samples $\mathbf{x}^{(j)}$.
+        \item PGF form: $\hat{G}_{\mathbf{X}}(\mathbf{t}) = \frac{1}{N_s} \sum_{j=1}^{N_s} e^{\langle \mathbf{x}^{(j)}, \ln(\mathbf{t}) \rangle}$.
+    \end{itemize}
+
+    \vspace{0.4cm}
+    \textbf{Line Sampling for Shift Invariance}
+    \begin{itemize}
+        \item Single points are not enough. We need a \textbf{sequence} to capture "rotations".
+        \item For each direction vector $\mathbf{u}_l$, we sample along a line in the complex domain:
+    \end{itemize}
+    \begin{equation*}
+        \mathbf{t}(\mathbf{u}_l, n) = \mathbf{1} + j \Delta n \mathbf{u}_l, \quad n = 0, 1, \dots, 2N-1
+    \end{equation*}
+
+    \vspace{0.2cm}
+    \textbf{Resulting Signal Sequence:}
+    $$ y_l[n] = \hat{G}_{\mathbf{X}}(\mathbf{t}(\mathbf{u}_l, n)) \approx \sum_{k=1}^{r} \pi_k (e^{j \Delta \langle \bm{\lambda}_k, \mathbf{u}_l \rangle})^n $$
+    This maps the Poisson recovery problem to Harmonic Retrieval.
+\end{frame}
+
 \begin{frame}{The JESPRIT Algorithm}
     \textbf{Key Innovation: Global Subspace Estimation}
     \begin{itemize}
