@@ -11,14 +11,13 @@
         \item \textbf{Unknowns:} Rate matrix $\mathbf{A} = [\bm{\lambda}_1, \dots, \bm{\lambda}_r]$ and weights $\bm{\pi}$.
     \end{itemize}
     
-    \vspace{0.5cm}
-    \textbf{Challenge:} High-dimensional estimation from unlabeled samples.
+
     
     \vspace{0.2cm}
     \textbf{Sketching Approach:}
     \begin{enumerate}
         \item Compute \textbf{Empirical PGF} at specific points: $\mathbf{t}(\mathbf{u}, n) = \mathbf{1} + j \Delta n \mathbf{u}$.
-        \item Map PGF samples to \textbf{Harmonic Retrieval} model.
+        \item Map samples to theoretical expression for the PGF of the Mixed Poisson.
         \item Apply \textbf{JESPRIT} to recover parameters.
     \end{enumerate}
 \end{frame}
@@ -33,23 +32,18 @@
     \vspace{0.4cm}
     \textbf{Line Sampling for Shift Invariance}
     \begin{itemize}
-        \item Single points are not enough. We need a \textbf{sequence} to capture "rotations".
+        \item Single points are not enough. We need a \textbf{sequence} to capture the rotation invariance.
         \item For each direction vector $\mathbf{u}_l$, we sample along a line in the complex domain:
     \end{itemize}
     \begin{equation*}
         \mathbf{t}(\mathbf{u}_l, n) = \mathbf{1} + j \Delta n \mathbf{u}_l, \quad n = 0, 1, \dots, 2N-1
     \end{equation*}
-
-    \vspace{0.2cm}
-    \textbf{Resulting Signal Sequence:}
-    $$ y_l[n] = \hat{G}_{\mathbf{X}}(\mathbf{t}(\mathbf{u}_l, n)) \approx \sum_{k=1}^{r} \pi_k (e^{j \Delta \langle \bm{\lambda}_k, \mathbf{u}_l \rangle})^n $$
-    This maps the Poisson recovery problem to Harmonic Retrieval.
 \end{frame}
 
 \begin{frame}{The JESPRIT Algorithm}
     \textbf{Key Innovation: Global Subspace Estimation}
     \begin{itemize}
-        \item Instead of processing each direction independently, we \textbf{stack} Hankel matrices from all directions into $\mathbf{X}_{\text{glob}}$.
+        \item Instead of processing each direction independently, we \textbf{stack} directional samples matrices $Z_l$ from all directions into $\mathbf{X}_{\text{glob}}$.
         \item \textbf{Global SVD:} $\mathbf{X}_{\text{glob}} \approx \mathbf{U}_{\text{glob}} \mathbf{\Sigma} \mathbf{V}^H$.
         \item Ensures all directional subspaces $\hat{\mathbf{U}}_l$ share a \textbf{coherent basis}.
     \end{itemize}
@@ -58,9 +52,9 @@
     \textbf{Recovery Steps:}
     \small
     \begin{enumerate}
-        \item \textbf{RIMs:} Solve $\hat{\mathbf{U}}_{l, \uparrow} \mathbf{\Psi}_l \approx \hat{\mathbf{U}}_{l, \downarrow}$ for shifts.
+        \item \textbf{RIMs:} Solve $\hat{\mathbf{U}}_{l, \uparrow} \Psi_l \approx \hat{\mathbf{U}}_{l, \downarrow}$ for shifts.
         \item \textbf{Joint Diagonalization:} Find $\mathbf{T}$ such that for all $l$:
-        $$ \mathbf{\Psi}_l \approx \mathbf{T} \mathbf{\Phi}_l \mathbf{T}^{-1}, \quad \mathbf{\Phi}_l = \text{diag}(\phi_{1,l}, \dots, \phi_{r,l}) $$
+        $$ \Psi_l \approx \mathbf{T} \Phi_l \mathbf{T}^{-1}, \quad \Phi_l = \text{diag}(\phi_{1,l}, \dots, \phi_{r,l}) $$
         \item \textbf{Extraction:} Eigenvalues $\phi_{k,l}$ give Rates $\bm{\lambda}_k$ via:
         $$ \phi_{k,l} = e^{j \Delta \langle \bm{\lambda}_k, \mathbf{u}_l \rangle} $$
         \item \textbf{Probabilities ($\bm{\pi}$):} Solve linear system $\mathbf{y} \approx \mathbf{E} \bm{\pi}$ via Least Squares:
@@ -120,3 +114,4 @@
         \end{itemize}
     \end{columns}
 \end{frame}
+
