@@ -59,8 +59,12 @@
     \small
     \begin{enumerate}
         \item \textbf{RIMs:} Solve $\hat{\mathbf{U}}_{l, \uparrow} \mathbf{\Psi}_l \approx \hat{\mathbf{U}}_{l, \downarrow}$ for shifts.
-        \item \textbf{Joint Diagonalization:} Find $\mathbf{T}$ to diagonalize all $\mathbf{\Psi}_l$ simultaneously.
-        \item \textbf{Extraction:} Eigenvalues $\to$ Rates $\bm{\lambda}_k$. Least Squares $\to$ Probs $\bm{\pi}$.
+        \item \textbf{Joint Diagonalization:} Find $\mathbf{T}$ such that for all $l$:
+        $$ \mathbf{\Psi}_l \approx \mathbf{T} \mathbf{\Phi}_l \mathbf{T}^{-1}, \quad \mathbf{\Phi}_l = \text{diag}(\phi_{1,l}, \dots, \phi_{r,l}) $$
+        \item \textbf{Extraction:} Eigenvalues $\phi_{k,l}$ give Rates $\bm{\lambda}_k$ via:
+        $$ \phi_{k,l} = e^{j \Delta \langle \bm{\lambda}_k, \mathbf{u}_l \rangle} $$
+        \item \textbf{Probabilities ($\bm{\pi}$):} Solve linear system $\mathbf{y} \approx \mathbf{E} \bm{\pi}$ via Least Squares:
+        $$ \min_{\bm{\pi}} \| \mathbf{y} - \mathbf{E} \bm{\pi} \|_2^2 \quad \text{where } E_{l,k} = e^{j \Delta \langle \hat{\bm{\lambda}}_k, \mathbf{u}_l \rangle} $$
     \end{enumerate}
 \end{frame}
 
@@ -97,16 +101,22 @@
         
         \column{0.5\textwidth}
         \small
+        \textbf{Experiment Setup:}
+        \begin{itemize}
+            \item A = random(range, d, r).
+            \item Increase number of samples until MRE $< 10\%$.
+            \item Increase dimension $r$ while success rate $>75\%$.
+        \end{itemize}
+
         \textbf{Finding 2: Dynamic Range}
         \begin{itemize}
-            \item Larger rate range $[0, 10^4]$ improves recovery.
-            \item Distinct "directions" in count space act as higher SNR.
+            \item A larger rate range in $A$ improves recovery.
         \end{itemize}
         
         \vspace{0.2cm}
         \textbf{Scalability:}
         \begin{itemize}
-            \item Sample complexity depends on Rank $r$, not Dimension $d$.
+            \item Algorithm performance depends on Rank $r$, not Dimension $d$.
         \end{itemize}
     \end{columns}
 \end{frame}
