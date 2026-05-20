@@ -2,12 +2,13 @@
 
 \subsection*{Signal Model}
 We consider a $d$-dimensional signal $\boldsymbol{y}[\boldsymbol{n}]$ composed of $r$ complex components.
-The signal at any $d$-dimensional coordinate $\boldsymbol{n} \in \mathbb{Z}^d$ is:
-$$ \boldsymbol{y}[\boldsymbol{n}] = \sum_{k=1}^{r} a_k e^{j\langle \boldsymbol{\omega}_k, \boldsymbol{n} \rangle} + \boldsymbol{w}[\boldsymbol{n}] $$
+The signal at any $d$-dimensional coordinate $\boldsymbol{n}$ is sampled with a grid scale $\Delta$:
+$$ \boldsymbol{y}[\boldsymbol{n}] = \sum_{k=1}^{r} a_k e^{j\langle \Delta \boldsymbol{\omega}_k, \boldsymbol{n} \rangle} + \boldsymbol{w}[\boldsymbol{n}] $$
 where:
 \begin{itemize}
     \item $a_k \in \mathbb{C}$ is the complex amplitude of component $k$.
-    \item $\boldsymbol{\omega}_k \in [-\pi, \pi)^d$ is the unknown $d$-dimensional frequency vector we want to find.
+    \item $\boldsymbol{\omega}_k$ is the unknown $d$-dimensional frequency vector we want to find.
+    \item $\Delta$ is a known grid scale factor.
     \item $\boldsymbol{w}[\boldsymbol{n}]$ is additive noise.
 \end{itemize}
 
@@ -25,10 +26,10 @@ This strategy reduces the $d$-D problem to a set of $M$ 1D problems, one for eac
 For a single direction $l$, we analyze the signal $z_{l,s}[n]$ sampled along the line $(l, s)$.
 By substituting the line coordinate $\boldsymbol{n}' = \boldsymbol{p}_{l,s} + n \boldsymbol{u}_l$ into the signal model:
 \begin{align*}
-    z_{l,s}[n] &= \sum_{k=1}^{r} a_k e^{j\langle \boldsymbol{\omega}_k, \boldsymbol{p}_{l,s} + n \boldsymbol{u}_l \rangle} + w_{l,s}[n] \\
-    z_{l,s}[n] &= \sum_{k=1}^{r} \left( a_k e^{j\langle \boldsymbol{\omega}_k, \boldsymbol{p}_{l,s} \rangle} \right) \left( e^{j\varphi_{k,l}} \right)^n + w_{l,s}[n]
+    z_{l,s}[n] &= \sum_{k=1}^{r} a_k e^{j\langle \Delta \boldsymbol{\omega}_k, \boldsymbol{p}_{l,s} + n \boldsymbol{u}_l \rangle} + w_{l,s}[n] \\
+    z_{l,s}[n] &= \sum_{k=1}^{r} \left( a_k e^{j\langle \Delta \boldsymbol{\omega}_k, \boldsymbol{p}_{l,s} \rangle} \right) \left( e^{j\varphi_{k,l}} \right)^n + w_{l,s}[n]
 \end{align*}
-This is a standard 1D multi-snapshot model. The term $\varphi_{k,l} = \langle \boldsymbol{\omega}_k, \boldsymbol{u}_l \rangle$ is the 1D frequency for this direction; it is the scalar projection of the $d$-D frequency vector $\boldsymbol{\omega}_k$ onto the 1D direction vector $\boldsymbol{u}_l$.
+This is a standard 1D multi-snapshot model. The term $\varphi_{k,l} = \Delta \langle \boldsymbol{\omega}_k, \boldsymbol{u}_l \rangle$ is the 1D frequency for this direction; it is the scaled scalar projection of the $d$-D frequency vector $\boldsymbol{\omega}_k$ onto the 1D direction vector $\boldsymbol{u}_l$.
 We can stack all $S_l$ snapshots (from the $S_l$ base points) into a matrix equation:
 $$ \mathbf{Z}_l = \mathbf{V}_l \mathbf{C}_l + \mathbf{W}_l $$
 where $\mathbf{Z}_l$ is the $N_l \times S_l$ measurement matrix, $\mathbf{V}_l$ is the $N_l \times r$ frequency matrix, $\mathbf{C}_l$ is the $r \times S_l$ amplitude matrix, and $\mathbf{W}_l$ is the noise matrix.
@@ -47,13 +48,13 @@ e^{j\varphi_{1,l}} & e^{j\varphi_{2,l}} & \cdots & e^{j\varphi_{r,l}} \\
 e^{j2\varphi_{1,l}} & e^{j2\varphi_{2,l}} & \cdots & e^{j2\varphi_{r,l}} \\
 \vdots & \vdots & \ddots & \vdots \\
 e^{j(N_l-1)\varphi_{1,l}} & e^{j(N_l-1)\varphi_{2,l}} & \cdots & e^{j(N_l-1)\varphi_{r,l}}
-\end{pmatrix} \quad \text{where } \varphi_{k,l} = \langle \boldsymbol{\omega}_k, \boldsymbol{u}_l \rangle  \\[5ex]
+\end{pmatrix} \quad \text{where } \varphi_{k,l} = \Delta \langle \boldsymbol{\omega}_k, \boldsymbol{u}_l \rangle  \\[5ex]
  \mathbf{C}_l &= \begin{pmatrix}
-a_{1}e^{j\langle\boldsymbol{\omega}_{1},\boldsymbol{p}_{1,l}\rangle} & a_{1}e^{j\langle\boldsymbol{\omega}_{1},\boldsymbol{p}_{2,l}\rangle} & \cdots & a_{1}e^{j\langle\boldsymbol{\omega}_{1},\boldsymbol{p}_{S_l,l}\rangle} \\
-a_{2}e^{j\langle\boldsymbol{\omega}_{2},\boldsymbol{p}_{1,l}\rangle} & a_{2}e^{j\langle\boldsymbol{\omega}_{2},\boldsymbol{p}_{2,l}\rangle} & \cdots & a_{2}e^{j\langle\boldsymbol{\omega}_{2},\boldsymbol{p}_{S_l,l}\rangle} \\
+a_{1}e^{j\langle \Delta \boldsymbol{\omega}_{1},\boldsymbol{p}_{1,l}\rangle} & a_{1}e^{j\langle \Delta \boldsymbol{\omega}_{1},\boldsymbol{p}_{2,l}\rangle} & \cdots & a_{1}e^{j\langle \Delta \boldsymbol{\omega}_{1},\boldsymbol{p}_{S_l,l}\rangle} \\
+a_{2}e^{j\langle \Delta \boldsymbol{\omega}_{2},\boldsymbol{p}_{1,l}\rangle} & a_{2}e^{j\langle \Delta \boldsymbol{\omega}_{2},\boldsymbol{p}_{2,l}\rangle} & \cdots & a_{2}e^{j\langle \Delta \boldsymbol{\omega}_{2},\boldsymbol{p}_{S_l,l}\rangle} \\
 \vdots & 
 \vdots & \ddots & \vdots \\
-a_{r}e^{j\langle\boldsymbol{\omega}_{r},\boldsymbol{p}_{1,l}\rangle} & a_{r}e^{j\langle\boldsymbol{\omega}_{r},\boldsymbol{p}_{2,l}\rangle} & \cdots & a_{r}e^{j\langle\boldsymbol{\omega}_{r},\boldsymbol{p}_{S_l,l}\rangle}
+a_{r}e^{j\langle \Delta \boldsymbol{\omega}_{r},\boldsymbol{p}_{1,l}\rangle} & a_{r}e^{j\langle \Delta \boldsymbol{\omega}_{r},\boldsymbol{p}_{2,l}\rangle} & \cdots & a_{r}e^{j\langle \Delta \boldsymbol{\omega}_{r},\boldsymbol{p}_{S_l,l}\rangle}
 \end{pmatrix} 
 \end{align*}
 
@@ -106,25 +107,25 @@ Now that we have the common un-shuffler $\hat{\mathbf{T}}$, we can find the pair
     We find the 1D frequencies $\hat{\varphi}_{k,l}$ by taking the angle of the $k$-th diagonal element of $\hat{\mathbf{\Phi}}_l$:
     $$ \hat{\varphi}_{k,l} = \arg\left( (\hat{\mathbf{\Phi}}_l)_{kk} \right) $$
     
-    \item \textbf{Phase Unwrapping:} It is necessary to "unwrap" the $\hat{\varphi}_{k,l}$ values since they were recovered using the $\arg()$ function, which only returns a "wrapped" value in the principal range (e.g., $(-\pi, \pi]$).   Phase unwrapping algorithms correct these jumps by adding or subtracting multiples of $2\pi$ to restore a smooth sequence, $\tilde{\varphi}_k$. This process relies on a key assumption: the true frequency projections $\langle \boldsymbol{\omega}_k, \boldsymbol{u}_l \rangle$ change smoothly (by less than $\pi$) between adjacent direction vectors. This assumption is only met if the set of $M$ direction vectors is sufficiently dense, which is why $M$ is chosen to be greater than $d$ ($M > d$). This redundancy provides a dense sampling of the direction space, ensuring the projections can be unwrapped reliably.
+    \item \textbf{Phase Unwrapping:} It is necessary to "unwrap" the $\hat{\varphi}_{k,l}$ values since they were recovered using the $\arg()$ function, which only returns a "wrapped" value in the principal range (e.g., $(-\pi, \pi]$).   Phase unwrapping algorithms correct these jumps by adding or subtracting multiples of $2\pi$ to restore a smooth sequence, $\tilde{\varphi}_k$. This process relies on a key assumption: the true frequency projections $\Delta \langle \boldsymbol{\omega}_k, \boldsymbol{u}_l \rangle$ change smoothly (by less than $\pi$) between adjacent direction vectors. This assumption is only met if the set of $M$ direction vectors is sufficiently dense, which is why $M$ is chosen to be greater than $d$ ($M > d$). This redundancy provides a dense sampling of the direction space, ensuring the projections can be unwrapped reliably.
     
-    \item \textbf{Reconstruct $\boldsymbol{\omega}_k$:} For each component $k$, we now have its vector of $M$ unwrapped 1D frequency projections, $\boldsymbol{\tilde{\varphi}}_k = [\tilde{\varphi}_{k,1}, \dots, \tilde{\varphi}_{k,M}]^T$. We find the $d$-D vector $\boldsymbol{\omega}_k$ by solving the linear system $\boldsymbol{\tilde{\varphi}}_k \approx \mathbf{U} \boldsymbol{\omega}_k$.
+    \item \textbf{Reconstruct $\boldsymbol{\omega}_k$:} For each component $k$, we now have its vector of $M$ unwrapped 1D frequency projections, $\boldsymbol{\tilde{\varphi}}_k = [\tilde{\varphi}_{k,1}, \dots, \tilde{\varphi}_{k,M}]^T$. We find the $d$-D vector $\boldsymbol{\omega}_k$ by solving the linear system $\boldsymbol{\tilde{\varphi}}_k \approx \Delta \mathbf{U} \boldsymbol{\omega}_k$.
     Explicitly, this is:
     $$
     \underbrace{\begin{pmatrix} \tilde{\varphi}_{k,1} \\ \tilde{\varphi}_{k,2} \\ \vdots \\ \tilde{\varphi}_{k,M} \end{pmatrix}}_{\boldsymbol{\tilde{\varphi}}_k \text{ (known)}}
-    \approx
+    \approx \Delta
     \underbrace{\begin{pmatrix} \text{--- } \boldsymbol{u}_1 \text{ ---} \\ \text{--- } \boldsymbol{u}_2 \text{ ---} \\ \vdots \\ \text{--- } \boldsymbol{u}_M \text{ ---} \end{pmatrix}}_{\mathbf{U} \text{ (known)}}
     \underbrace{\begin{pmatrix} \omega_{k,1} \\ \vdots \\ \omega_{k,d} \end{pmatrix}}_{\boldsymbol{\omega}_k \text{ (unknown)}}
     $$
     We solve this $M \times d$ system using the unwrapped vector $\boldsymbol{\tilde{\varphi}}_k$:
-    $$ \hat{\boldsymbol{\omega}}_k = (\mathbf{U}^T \mathbf{U})^{-1} \mathbf{U}^T \boldsymbol{\tilde{\varphi}}_k $$
+    $$ \hat{\boldsymbol{\omega}}_k = \frac{1}{\Delta} (\mathbf{U}^T \mathbf{U})^{-1} \mathbf{U}^T \boldsymbol{\tilde{\varphi}}_k $$
 \end{enumerate}
 
 \subsection{Step 6: Amplitude Estimation}
 Now that we have the $d$-D frequencies $\hat{\boldsymbol{\omega}}_k$ for all components, the only unknowns are the original amplitudes $a_k$.
 We solve for them by setting up one final global least-squares problem:
 $$ \hat{\boldsymbol{a}} = \arg\min_{\boldsymbol{a}} \sum_{\boldsymbol{n} \in \text{all sampled points}} \left|
-z[\boldsymbol{n}] - \sum_{k=1}^r a_k e^{j\langle \hat{\boldsymbol{\omega}}_k, \boldsymbol{n} \rangle} \right|^2 $$
+z[\boldsymbol{n}] - \sum_{k=1}^r a_k e^{j\langle \Delta \hat{\boldsymbol{\omega}}_k, \boldsymbol{n} \rangle} \right|^2 $$
 This finds the $r$ amplitudes that best fit all the data we collected.
 
 \subsection{Implementation adjustments}
