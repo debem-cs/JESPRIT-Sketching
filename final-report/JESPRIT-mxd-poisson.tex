@@ -34,14 +34,14 @@ By the Law of Large Numbers, $\hat{G}_{\mathbf{X}}(\mathbf{t}) \to G_{\mathbf{X}
 We need to map this PGF estimation problem to the multidimensional harmonic retrieval signal model required for the JESPRIT algorithm:
 $$ y[\mathbf{n}] = \sum_{k=1}^{r} a_k e^{j \langle \boldsymbol{\omega}_k, \mathbf{n} \rangle} $$
 
-We achieve this by choosing specific sampling points $\mathbf{t}$. Unlike the single-point case, ESPRIT requires a sequence of samples along each direction to estimate the shift invariance. For each direction vector $\mathbf{u} \in \mathbb{C}^d$, we sample at points indexed by an integer $n$:
-$$ \mathbf{t}(\mathbf{u}, n) = \mathbf{1} + j \Delta n \mathbf{u}, \quad n = 0, 1, \dots, 2N-1 $$
+We achieve this by choosing specific sampling points $\mathbf{t}$. For each direction vector $\mathbf{u}_l \in \mathbb{C}^d$, we select $S$ random base points $\{\mathbf{p}_{l,s}\}_{s=1}^S$. For each base point, we sample a sequence of $N$ points indexed by an integer $n$:
+$$ \mathbf{t}(\mathbf{p}_{l,s}, \mathbf{u}_l, n) = \mathbf{1} + j \Delta (\mathbf{p}_{l,s} + n \mathbf{u}_l), \quad n = 0, 1, \dots, N-1 $$
 
 Substituting this into the theoretical PGF equation (\ref{eq:theoretical_pgf}):
 \begin{align*}
-    G_{\mathbf{X}}(\mathbf{t}(\mathbf{u}, n)) &= \sum_{k=1}^{r} \pi_k e^{\langle \boldsymbol{\lambda}_k, (\mathbf{1} + j \Delta n \mathbf{u}) - \mathbf{1} \rangle} \\
-    &= \sum_{k=1}^{r} \pi_k e^{j n \langle \Delta \boldsymbol{\lambda}_k, \mathbf{u} \rangle} \\
-    &= \sum_{k=1}^{r} \pi_k (e^{j \langle \Delta \boldsymbol{\lambda}_k, \mathbf{u} \rangle})^n
+    G_{\mathbf{X}}(\mathbf{t}(\mathbf{p}_{l,s}, \mathbf{u}_l, n)) &= \sum_{k=1}^{r} \pi_k e^{\langle \boldsymbol{\lambda}_k, (\mathbf{1} + j \Delta (\mathbf{p}_{l,s} + n \mathbf{u}_l)) - \mathbf{1} \rangle} \\
+    &= \sum_{k=1}^{r} \pi_k e^{j \langle \Delta \boldsymbol{\lambda}_k, \mathbf{p}_{l,s} + n \mathbf{u}_l \rangle} \\
+    &= \sum_{k=1}^{r} \left( \pi_k e^{j \langle \Delta \boldsymbol{\lambda}_k, \mathbf{p}_{l,s} \rangle} \right) \left(e^{j \langle \Delta \boldsymbol{\lambda}_k, \mathbf{u}_l \rangle}\right)^n
 \end{align*}
 
 This equation exactly matches the JESPRIT signal model components:
@@ -56,14 +56,14 @@ This equation exactly matches the JESPRIT signal model components:
 With the mapping established, we proceed to recover the parameters. A crucial aspect of JESPRIT is obtaining a set of matrices that share a common eigenvector basis. To ensure this coherence across different sampling directions, we employ a Global SVD approach rather than processing each direction independently.
 
 \subsubsection{Step 1: PGF Sampling \& Global Subspace Estimation}
-We collect the measurements from all $M$ sampling directions. For each direction $l$, we compute the sequence of PGF samples $y_l[n]$ for $n=0, \dots, 2N-1$.
-From this sequence, we construct a square Hankel matrix $\mathbf{Z}_l \in \mathbb{C}^{N \times N}$:
+We collect the measurements from all $M$ sampling directions. For each direction $l$, we compute the PGF samples $y_{l,s}[n]$ for each of the $S$ base points $\mathbf{p}_{l,s}$ and $N$ steps $n=0, \dots, N-1$.
+From these sequences, we construct a data matrix $\mathbf{Z}_l \in \mathbb{C}^{N \times S}$:
 $$
 \mathbf{Z}_l = \begin{pmatrix}
-y_l[0] & y_l[1] & \cdots & y_l[N-1] \\
-y_l[1] & y_l[2] & \cdots & y_l[N] \\
+y_{l,1}[0] & y_{l,2}[0] & \cdots & y_{l,S}[0] \\
+y_{l,1}[1] & y_{l,2}[1] & \cdots & y_{l,S}[1] \\
 \vdots & \vdots & \ddots & \vdots \\
-y_l[N-1] & y_l[N] & \cdots & y_l[2N-2]
+y_{l,1}[N-1] & y_{l,2}[N-1] & \cdots & y_{l,S}[N-1]
 \end{pmatrix}
 $$
 We stack these matrices vertically to form a Global Data Matrix $\mathbf{X}_{\text{glob}}$:
@@ -90,10 +90,10 @@ Using the relation $\omega_{k,l} = \Delta \langle \boldsymbol{\lambda}_k, \mathb
 The complete weight matrix $\hat{\mathbf{A}}$ is then constructed by stacking these estimated vectors as columns:
 $$ \hat{\mathbf{A}} = \begin{bmatrix} \hat{\boldsymbol{\lambda}}_1 & \hat{\boldsymbol{\lambda}}_2 & \dots & \hat{\boldsymbol{\lambda}}_r \end{bmatrix} $$
 
-Finally, to recover the mixture probabilities $\boldsymbol{\pi}$, we use the estimated rates $\hat{\boldsymbol{\lambda}}_k$ to construct a system of linear equations. The observed PGF samples $\mathbf{y}$ (from the data collection step) are modeled as linear combinations of the unknown probabilities:
-$$ y_l \approx \sum_{k=1}^r \pi_k e^{j \Delta \langle \hat{\boldsymbol{\lambda}}_k, \mathbf{u}_l \rangle}, \quad l=1,\dots,M $$
-This can be written in matrix form as $\mathbf{y} \approx \mathbf{E} \boldsymbol{\pi}$, where the matrix $\mathbf{E}$ has entries $E_{l,k} = e^{j \Delta \langle \hat{\boldsymbol{\lambda}}_k, \mathbf{u}_l \rangle}$. We solve this system via least-squares estimation:
-$$ \hat{\boldsymbol{\pi}} = (\mathbf{E}^H \mathbf{E})^{-1} \mathbf{E}^H \mathbf{y} $$
+Finally, to recover the mixture probabilities $\boldsymbol{\pi}$, we use the estimated rates $\hat{\boldsymbol{\lambda}}_k$ to construct a global system of linear equations. The observed PGF samples $y_{l,s}[n]$ across all directions, base points, and steps are modeled as:
+$$ y_{l,s}[n] \approx \sum_{k=1}^r \pi_k e^{j \langle \Delta \hat{\boldsymbol{\lambda}}_k, \mathbf{p}_{l,s} + n \mathbf{u}_l \rangle} $$
+This can be written in matrix form as $\mathbf{y}_{\text{glob}} \approx \mathbf{E} \boldsymbol{\pi}$, where $\mathbf{y}_{\text{glob}}$ contains all flattened samples and the matrix $\mathbf{E}$ contains the corresponding exponential terms. We solve this system via least-squares estimation:
+$$ \hat{\boldsymbol{\pi}} = (\mathbf{E}^H \mathbf{E})^{-1} \mathbf{E}^H \mathbf{y}_{\text{glob}} $$
 subject to the constraints $\pi_k \ge 0$ and $\sum \pi_k = 1$ if desired.
 
 \subsection{Results}

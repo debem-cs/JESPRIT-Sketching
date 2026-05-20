@@ -55,16 +55,24 @@ where $\boldsymbol{\lambda}_k = \mathbf{A}\mathbf{z}_k$ is the vector of Poisson
 
 \subsection*{Sampling Strategy}
 
-We sample the Probability-Generating Function (PGF) along complex directions $\mathbf{u}$, scaled by a factor $\Delta$ that is around $1/\lambda_{max}$ (highest poisson rate give by $\textbf{Az}$). We define the sampling points $\mathbf{t} \in \mathbb{C}^d$ as:
+We sample the Probability-Generating Function (PGF) along complex lines defined by a direction vector $\mathbf{u}$, a base point $\mathbf{p}$, and a step index $n$. We scale the sampling by a factor $\Delta$ that is around $1/\lambda_{max}$ (highest poisson rate give by $\textbf{Az}$). We define the sequence of sampling points $\mathbf{t}(\mathbf{p}, \mathbf{u}, n) \in \mathbb{C}^d$ as:
 
 $$
-\mathbf{t} = \mathbf{1}_d + j \Delta \mathbf{u}
+\mathbf{t}(\mathbf{p}, \mathbf{u}, n) = \mathbf{1}_d + j \Delta (\mathbf{p} + n \mathbf{u}), \quad n = 0, \dots, N-1
 $$
 
-Substituting this into the PGF definition yields the sample vector $\mathbf{y}$:
+Substituting this into the PGF definition yields the sequence of samples $y[n]$:
 
-$$
-\mathbf{y} = G_{\mathbf{X}}(\mathbf{t}) = \sum_{k=1}^{K} \pi_k e^{j \Delta \langle \boldsymbol{\lambda}_k , \mathbf{u} \rangle}
-$$
+\begin{align*}
+y[n] = G_{\mathbf{X}}(\mathbf{t}(\mathbf{p}, \mathbf{u}, n)) &= \sum_{k=1}^{K} \pi_k e^{\langle \boldsymbol{\lambda}_k, (\mathbf{1}_d + j \Delta (\mathbf{p} + n \mathbf{u})) - \mathbf{1}_d \rangle} \\
+&= \sum_{k=1}^{K} \pi_k e^{j \langle \Delta \boldsymbol{\lambda}_k, \mathbf{p} + n \mathbf{u} \rangle}
+\end{align*}
 
-Thus, $\mathbf{y}$ represents a sum of damped complex exponentials. Recovering the frequencies $\{\boldsymbol{\lambda}_k\}$ from the observed samples $\{\mathbf{y}\}$ is precisely the spectral estimation problem that the \textsc{Joint ESPRIT} algorithm is designed to solve.
+This equation maps exactly to a multi-dimensional harmonic retrieval signal model evaluated along a line coordinate $\boldsymbol{n} = \mathbf{p} + n \mathbf{u}$:
+\begin{itemize}
+    \item The mixture probabilities $\pi_k$ correspond to the amplitudes $a_k$.
+    \item The scaled rates $\Delta \boldsymbol{\lambda}_k$ correspond to the spatial frequencies $\boldsymbol{\omega}_k$.
+    \item The sequence of samples $y[n]$ corresponds to the signal observations along the line.
+\end{itemize}
+
+Thus, recovering the frequencies $\{\Delta \boldsymbol{\lambda}_k\}$ from the observed samples is precisely the spectral estimation problem that the \textsc{Joint ESPRIT} algorithm is designed to solve.
