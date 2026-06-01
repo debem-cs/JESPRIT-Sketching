@@ -1,0 +1,658 @@
+\documentclass[11pt]{article}
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage{amsmath, amssymb, amsthm}
+\usepackage{bm}
+\usepackage{mathtools}
+\usepackage{booktabs}
+\usepackage{array}
+\usepackage{enumitem}
+\usepackage{geometry}
+\usepackage{xcolor}
+\usepackage[colorlinks=true, linkcolor=blue!50!black, citecolor=blue!50!black, urlcolor=blue!50!black]{hyperref}
+\geometry{a4paper, margin=1in}
+
+\newcommand{\R}{\mathbb{R}}
+\newcommand{\C}{\mathbb{C}}
+\newcommand{\N}{\mathbb{N}}
+\newcommand{\E}{\mathbb{E}}
+\newcommand{\inner}[2]{\langle #1, #2 \rangle}
+\newcommand{\lam}{\bm{\lambda}}
+\newcommand{\Lam}{\bm{\Lambda}}
+\newcommand{\bu}{\bm{u}}
+\newcommand{\bp}{\bm{p}}
+\newcommand{\bt}{\bm{t}}
+\newcommand{\bxi}{\bm{\xi}}
+\newcommand{\bx}{\bm{x}}
+\newcommand{\bw}{\bm{w}}
+\newcommand{\bb}{\bm{b}}
+\newcommand{\deff}{\delta_{\mathrm{eff}}}
+\newcommand{\code}[1]{\texttt{\small #1}}
+\newcommand{\dd}{\mathrm{d}}
+
+% Neutralise math/format macros when hyperref builds PDF bookmark strings
+% (avoids "Illegal parameter number" / input-stack overflow on section titles).
+\pdfstringdefDisableCommands{%
+  \def\code#1{#1}%
+  \def\small{}%
+  \def\bm#1{#1}%
+  \def\bt{t}%
+  \def\le{<=}%
+}
+
+\theoremstyle{definition}
+\newtheorem{remark}{Remark}
+\newtheorem{proposition}{Proposition}
+
+\title{\textbf{PGF--JESPRIT, Current State of the \texttt{cikm} Codebase}\\[2mm]
+\large A math-focused walkthrough of the supervisor's implementation and how it differs from the original JESPRIT prototype}
+\author{Internal comparison note}
+\date{\today}
+
+\begin{document}
+\maketitle
+
+\begin{abstract}
+This note documents the current state of the supervisor's \code{cikm} repository
+(\code{src/pgf\_jesprit}) and contrasts it, derivation by derivation, with the original
+JESPRIT prototype (\code{JESPRIT/src}). The shared backbone is unchanged: a finite
+product--Poisson mixture is sketched by sampling its empirical probability generating
+function (PGF) along complex lines, the samples are organised as a multi--snapshot
+sum--of--exponentials model, and a global--subspace joint--ESPRIT pipeline recovers the
+rate vectors and mixture weights. The supervisor's version adds five mathematically
+substantive ingredients on top of that backbone:
+(i) \emph{damped} PGF queries that keep every evaluation point inside the closed unit disk,
+controlling the variance of the empirical PGF;
+(ii) a \emph{non--unitary} (similarity) joint diagonalisation in place of the unitary
+Cardoso--Souloumiac Jacobi sweep;
+(iii) \emph{constrained} parameter recovery (non--negative least squares for rates,
+simplex--constrained least squares for weights);
+(iv) a post--ESPRIT \emph{refinement} that minimises the exact PGF least--squares loss by
+L--BFGS--B using the closed--form analytic gradient and a log/softmax reparametrisation
+(this replaces the earlier projected--gradient--descent loop); and
+(v) the \emph{NB1} model, a one--parameter--per--coordinate negative--binomial family that
+sits between the finite Poisson mixture and a full Poisson--Gamma mixture and that, crucially,
+remains compatible with the ESPRIT algebra after a coordinate warp.
+We give the full derivations for (i), (iv) and (v) because those are where the new
+mathematics lives.
+\end{abstract}
+
+\tableofcontents
+
+%==================================================================
+\section{Notation and the map between the two codebases}
+%==================================================================
+
+Throughout we use the supervisor's notation (which matches his draft and the \code{cikm}
+code). Table~\ref{tab:notation} gives the translation to the symbols used in the original
+JESPRIT write-up.
+
+\begin{table}[h]
+\centering
+\small
+\begin{tabular}{lll}
+\toprule
+Object & \code{cikm} / this note & Original JESPRIT prototype \\
+\midrule
+Number of mixture components & $K$ & $r$ \\
+Ambient count dimension & $d$ & $d$ \\
+Rate vector of component $k$ & $\lam_k \in \R^d_+$ & $\bm{\omega}_k$ \\
+Rate matrix & $\Lam = [\lam_1,\dots,\lam_K] \in \R^{d\times K}_+$ & $\Omega$ \\
+Mixture weight & $\pi_k$ & $a_k$ \\
+Number of probing directions & $M$ & $M$ \\
+Direction vectors & $\bu_1,\dots,\bu_M$, $U\in\R^{M\times d}$ & $\bu_l$ \\
+Base points (snapshots) & $\bp_1,\dots,\bp_S$ & $\bp_{l,s}$ \\
+Samples along a line & $L$ (index $\ell=0,\dots,L-1$) & $N$ \\
+Total sketch size & $J = M S L$ & --- \\
+Nominal sketch scale & $\Delta$ & $\Delta$ \\
+Effective scale after damping & $\deff = \alpha\Delta$ & (n/a, $\deff=\Delta$) \\
+Damping real part & $r \in (0,1]$ & (n/a, $r=1$) \\
+\bottomrule
+\end{tabular}
+\caption{Symbol dictionary. The prototype always uses $r=1$, $\deff=\Delta$ implicitly,
+because its query points are $t = 1 + j\Delta\xi$.}
+\label{tab:notation}
+\end{table}
+
+\paragraph{File map of the \code{cikm} package.}
+\begin{itemize}[leftmargin=2em, itemsep=1pt]
+  \item \code{core.py} --- dataclasses: \code{MixtureParams}, \code{SketchConfig},
+        \code{PGFSketch}, \code{EMConfig}, \code{PGDConfig}, \code{ExperimentConfig}.
+  \item \code{pgf.py} --- empirical PGF, \emph{damped} line sampling, the \emph{NB1} warp
+        $\varphi$ and its inverse, the count--table fast path, complex noise injection.
+  \item \code{jesprit.py} --- global SVD, per-direction rotational invariance, joint
+        diagonalisation, phase $\to$ rate projection, weight system, diagnostics.
+  \item \code{linalg.py} --- \emph{similarity} joint diagonalisation, simplex projection,
+        \code{nnls} rate solve, SLSQP simplex weight solve.
+  \item \code{refinement.py} --- L--BFGS--B refinement with the analytic PGF gradient
+        (replaces PGD).
+  \item \code{em.py}, \code{poisson\_gamma.py}, \code{poisson\_gamma\_nb1.py} --- the three
+        likelihood baselines (finite Poisson EM, Poisson--Gamma ``NB2'' EM, NB1 EM).
+  \item \code{metrics.py}, \code{experiments.py}, \code{sketch\_vs\_raw.py},
+        \code{real\_data.py}, \code{cli.py} --- evaluation, drivers, real datasets.
+\end{itemize}
+
+%==================================================================
+\section{Shared backbone (unchanged from the prototype)}
+%==================================================================
+
+We recall the common model so the new pieces have a place to attach.
+
+\subsection{Model and PGF}
+The finite product--Poisson mixture is
+\begin{equation}
+Z \sim \sum_{k=1}^{K}\pi_k\,\delta_{\lam_k},
+\qquad
+X \mid Z=\lam_k \sim \bigotimes_{q=1}^{d}\mathrm{Poisson}(\lambda_{qk}),
+\label{eq:model}
+\end{equation}
+with $\lam_k\in\R^d_+$, $\pi_k\ge0$, $\sum_k\pi_k=1$. Because a Poisson$(\lambda)$ variable has
+PGF $\E[t^X]=e^{\lambda(t-1)}$, the mixture PGF is a weighted sum of exponentials,
+\begin{equation}
+G_X(\bt)=\E\!\Big[\textstyle\prod_{q=1}^d t_q^{X_q}\Big]
+        =\sum_{k=1}^{K}\pi_k\exp\!\big(\inner{\lam_k}{\bt-\bm 1}\big),
+\qquad \bt\in\C^d .
+\label{eq:pgf}
+\end{equation}
+The empirical PGF from samples $\bx^{(1)},\dots,\bx^{(n)}$ is
+\begin{equation}
+\widehat G_X(\bt)=\frac1n\sum_{i=1}^{n}\prod_{q=1}^d t_q^{x^{(i)}_q}
+                 =\frac1n\sum_{i=1}^{n}\exp\!\big(\inner{\bx^{(i)}}{\log\bt}\big).
+\label{eq:epgf}
+\end{equation}
+This is identical in \code{empirical\_pgf} (cikm) and \code{PGF} (prototype).
+
+\subsection{Random--base line sampling and the sum--of--exponentials structure}
+Pick $M$ directions $\bu_m$, $S$ shared base points $\bp_s$, and sample $L$ regularly
+spaced points along each line,
+\begin{equation}
+\bxi_{m,s,\ell} = \bp_s + \ell\,\bu_m,
+\qquad m=1{:}M,\ s=1{:}S,\ \ell=0{:}L-1 .
+\label{eq:lines}
+\end{equation}
+Evaluating \eqref{eq:pgf} at any query $\bt = \bm1 + (\text{linear in }\bxi)$ produces, at the
+population level, an \emph{exact} multidimensional sum of exponentials:
+\begin{equation}
+G_X(\bt_{m,s,\ell})=\sum_{k=1}^{K} c_{k,s}\,\rho_{m,k}^{\,\ell},
+\qquad
+\rho_{m,k}=e^{\,i\phi_{m,k}},\quad \phi_{m,k}=\deff\,\inner{\lam_k}{\bu_m},
+\label{eq:soe}
+\end{equation}
+with $c_{k,s}$ absorbing $\pi_k$ and the base--point phase. Stacking the $S$ snapshots of
+direction $m$ gives $Z_m = V_m C + E_m \in\C^{L\times S}$ with a Vandermonde factor $V_m$;
+stacking directions gives the global model $Z_{\mathrm{glob}} = V_{\mathrm{glob}}C + E_{\mathrm{glob}}$.
+Shared base points make $C$ \emph{common} across directions, which is what lets a single
+change of basis align all directions.
+
+\subsection{Global--subspace joint ESPRIT}
+Both codebases implement the same four moves, and importantly both use the
+\emph{global SVD} variant rather than independent per-direction subspaces:
+\begin{enumerate}[leftmargin=2em, itemsep=1pt]
+  \item Reshape to $Z_{\mathrm{glob}}\in\C^{ML\times S}$ and take its rank-$K$ left singular
+        subspace $\widehat U_s$ (\code{jesprit.py}: \code{svd(global\_matrix)}; prototype:
+        \code{svd(X\_glob)}). Using one global SVD fixes a single basis rotation for all
+        directions, which is the prerequisite for joint diagonalisation.
+  \item For each direction block $\widehat U_{s,m}\in\C^{L\times K}$, solve the rotational
+        invariance equation $\widehat U_{s,m}^{\uparrow}\,\Psi_m \approx \widehat U_{s,m}^{\downarrow}$
+        by least squares, $\Psi_m = (\widehat U_{s,m}^{\uparrow})^{+}\widehat U_{s,m}^{\downarrow}$.
+  \item Jointly diagonalise $\{\Psi_m\}$ to get a common eigenbasis and the aligned
+        eigenvalues $\mu_{m,k}$.
+  \item Read phases $\phi_{m,k}=\arg(\mu_{m,k})$, recover rates from
+        $\phi_{m,k}=\deff\inner{\lam_k}{\bu_m}$, and recover weights by least squares against
+        all sketch values.
+\end{enumerate}
+Everything below is about \emph{how} the supervisor changed the query points (step 0),
+the diagonaliser (step 3), and the two recovery solves (step 4), plus the new refinement and
+NB1 layers.
+
+%==================================================================
+\section{Difference 1 --- Damped PGF queries ($|\bt|\le1$)}\label{sec:damping}
+%==================================================================
+
+\subsection{The problem with the prototype's query points}
+The prototype evaluates the PGF at
+\[
+\bt_{m,s,\ell}=\bm1+i\Delta\,\bxi_{m,s,\ell}
+\qquad\Longrightarrow\qquad
+|t_q| = \sqrt{1+(\Delta\xi_q)^2}\;>\;1 .
+\]
+Every coordinate lies \emph{outside} the unit circle. In the empirical PGF \eqref{eq:epgf}
+the contribution of a sample is $\prod_q t_q^{x_q}$, whose modulus is
+$\prod_q |t_q|^{x_q} = \exp\!\big(\sum_q x_q\log|t_q|\big)$. With $|t_q|>1$ this grows
+\emph{exponentially in the counts}: a single high-count observation can dominate the average
+and the estimator variance explodes for large Poisson rates. This is exactly the
+``large rates make PGF evaluations numerically unstable'' limitation noted in the draft.
+
+\subsection{The damped construction (\code{\_damped\_query\_parameters})}
+The supervisor instead places the real part \emph{strictly inside} the disk and rescales the
+imaginary excursion so that the whole query family satisfies $|\bt|\le1$. Concretely the
+query points become
+\begin{equation}
+\boxed{\;\bt_{m,s,\ell} = r + i\,\deff\,\bxi_{m,s,\ell}\;}
+\qquad r\in(0,1],\quad \deff=\alpha\Delta,\ \alpha\in(0,1].
+\label{eq:damped}
+\end{equation}
+The parameters $(r,\alpha)$ are chosen as follows.
+\begin{enumerate}[leftmargin=2em, itemsep=2pt]
+  \item \textbf{Data scale.} Let $T_i=\sum_q |x^{(i)}_q|$ be the total count of sample $i$, and
+        set $L_{\mathrm{data}}=\max\!\big(1,\ \mathrm{quantile}_{0.95}(T)\big)$, a robust upper
+        bound on the count magnitude.
+  \item \textbf{Target radius.} Choose
+        \begin{equation}
+        r_\star = 1-\frac{\log n}{2\,L_{\mathrm{data}}},
+        \qquad\text{clipped to } (10^{-6},\,1-10^{-6}).
+        \label{eq:rstar}
+        \end{equation}
+  \item \textbf{Imaginary budget.} Set $b_\star=\sqrt{1-r_\star^2}$ (so $r_\star^2+b_\star^2=1$),
+        measure the current imaginary extent $b_{\mathrm{old}}=\max_{m,s,\ell}|\Delta\,\bxi_{m,s,\ell}|$,
+        and shrink the scale by
+        $\alpha=\min(1,\ b_\star/b_{\mathrm{old}})$.
+  \item \textbf{Final point.} With $b=\min(\alpha\,b_{\mathrm{old}},\,1-\varepsilon)$ set
+        $r=\sqrt{1-b^2}$ and $\deff=\alpha\Delta$.
+\end{enumerate}
+By construction the most extreme query lies \emph{on} the circle and all others inside it:
+\[
+\max_{m,s,\ell}|\bt_{m,s,\ell}|^2
+ = r^2 + (\deff\,b_{\mathrm{old}}/\Delta)^2\cdot\Delta^2
+ = r^2 + b^2 = 1 .
+\]
+The code asserts $\max|\bt|\le1+10^{-10}$ and raises otherwise.
+
+\subsection{Why $r_\star = 1-\log n/(2L_{\mathrm{data}})$?}
+This is the key statistical choice. For a sample with the typical worst-case count
+$L_{\mathrm{data}}$, the modulus of its PGF term is bounded by
+\[
+r_\star^{\,L_{\mathrm{data}}}
+=\Big(1-\tfrac{\log n}{2L_{\mathrm{data}}}\Big)^{L_{\mathrm{data}}}
+\;\approx\; \exp\!\Big(-\tfrac{\log n}{2}\Big)
+\;=\;\frac{1}{\sqrt n}.
+\]
+So the damping is tuned so that the heaviest-count samples are attenuated to exactly the
+$n^{-1/2}$ stochastic floor of the empirical average \eqref{eq:epgf}: damping any harder
+would push the signal below the Monte-Carlo noise, while damping any less (the prototype's
+$r=1$ or $r>1$) leaves high-count terms with $O(1)$ or exploding modulus and inflated variance.
+It is the bias--variance sweet spot for the empirical PGF on the unit disk.
+
+\begin{remark}[Damping does not break the ESPRIT algebra]
+Along direction $m$ the consecutive ratio of \eqref{eq:soe} is
+$\rho_{m,k}=\exp(i\deff\,\inner{\lam_k}{\bu_m}\,\Delta\ell)$, still of unit modulus. The real
+part $r$ and the base-point/offset terms only rescale the per-line amplitude $c_{k,s}$ and are
+absorbed into the right factor $C$. Hence the poles stay on the unit circle and steps 1--4 are
+unchanged; only the rate read-out uses $\deff$ in place of $\Delta$ and divides by the
+per-direction spacing (see \S\ref{sec:constrained}).
+\end{remark}
+
+%==================================================================
+\section{Difference 2 --- Similarity (non-unitary) joint diagonalisation}
+%==================================================================
+
+\subsection{Prototype: unitary Cardoso--Souloumiac}
+The prototype's \code{joint\_diag} is a direct port of Cardoso's Jacobi-angle routine: it
+searches for a \emph{unitary} $V$ minimising the total off-diagonal energy of
+$\{V^{H}\Psi_m V\}$ via complex Givens rotations. This is optimal when the $\Psi_m$ are
+\emph{normal} (e.g.\ Hermitian covariance-like blocks).
+
+\subsection{cikm: similarity diagonalisation (\code{similarity\_joint\_diag})}
+The rotational invariance matrices obey $\Psi_m = T^{-1}\,\mathrm{diag}(\rho_{m,1},\dots,\rho_{m,K})\,T$
+for a \emph{common but generally non-unitary} $T\in\mathrm{GL}(K)$ --- the columns of $T^{-1}$
+are the (non-orthonormal) component directions in the global subspace. Forcing $V$ unitary is
+therefore model-mismatched. The supervisor's routine looks for a general similarity instead:
+
+\begin{enumerate}[leftmargin=2em, itemsep=1pt]
+  \item Draw a random complex combination $\Psi(\bm c)=\sum_m c_m\Psi_m$
+        (trial $0$ uses $c_m\equiv1$; later trials use complex Gaussian $c_m$).
+  \item Eigendecompose $\Psi(\bm c)=V\,\Lambda\,V^{-1}$; the eigenvectors $V$ are a candidate
+        common basis.
+  \item Score the candidate by the \emph{off-diagonal energy ratio}
+        \begin{equation}
+        \eta(V)=\frac{\sum_m \big\|\,V^{-1}\Psi_m V - \mathrm{diag}(V^{-1}\Psi_m V)\,\big\|_F^2}
+                     {\sum_m \big\|\,\mathrm{diag}(V^{-1}\Psi_m V)\,\big\|_F^2}.
+        \end{equation}
+  \item Over $64$ random trials keep the $V$ with the smallest $\eta$ (and report
+        $\mathrm{cond}(V)$ as a diagnostic).
+\end{enumerate}
+A single generic combination already shares its eigenvectors with every $\Psi_m$ in the
+noiseless case; the random trials guard against the unlucky event that the chosen combination
+has near-degenerate eigenvalues (ill-conditioned $V$). The reported $\mathrm{cond}(V)$ and
+$\eta$ feed the convergence flag. The prototype's unitary routine is kept only as a
+backward-compatible alias.
+
+%==================================================================
+\section{Difference 3 --- Constrained recovery of rates and weights}\label{sec:constrained}
+%==================================================================
+
+\subsection{Rates: non-negative least squares per direction's spacing}
+After joint diagonalisation we have aligned eigenvalues $\mu_{m,k}$ and phases
+$\phi_{m,k}=\arg(\mu_{m,k})$. The cikm code first divides out the (possibly direction-specific)
+sample spacing $\Delta\ell_m$ that it validates from \code{line\_offsets}:
+\begin{equation}
+\widehat g_{m,k} \;=\; \frac{\phi_{m,k}}{\deff\,(\Delta\ell)_m}\;\approx\;\inner{\lam_k}{\bu_m}.
+\end{equation}
+Then, instead of the prototype's $\widehat{\bm\omega}_k=\tfrac1\Delta U^{+}\bm\phi_k$ followed by
+$|\mathrm{Re}(\cdot)|$, it solves a genuine non-negative least squares for each component
+\begin{equation}
+\widehat\lam_k \;=\; \arg\min_{\lam\ge\bm 0}\ \big\|\,U\lam - \widehat{\bm g}_k\,\big\|_2^2
+\qquad(\text{\code{scipy.optimize.nnls}}),
+\label{eq:nnls}
+\end{equation}
+which enforces $\lam_k\in\R^d_+$ exactly rather than by post-hoc absolute value. (The draft's
+``wrapped least squares'' with the integer wrap $\bm q$ degenerates to this when the
+no-wrapping condition $|\deff\inner{\lam_k}{\bu_m}|<\pi$ holds; the code monitors
+$\max_{m,k}|\phi_{m,k}|$ against $0.9\pi$ and raises a phase-wrapping warning otherwise.)
+
+\subsection{Weights: simplex-constrained least squares}
+The weight system reuses every sketch value. With the linear query rows
+$\bb_j=(r-1)+i\deff\,\bxi_j\in\C^d$ and design matrix $A_{jk}=\exp(\inner{\bb_j}{\lam_k})$
+(this is $\exp((\bt_j-1)\!\cdot\!\Lam)$, consistent with \eqref{eq:pgf} under damping), the
+weights solve
+\begin{equation}
+\widehat{\bm\pi} = \arg\min_{\bm\pi\in\Delta_K}\ \big\|A\bm\pi - \bm y\big\|_2^2,
+\qquad \Delta_K=\{\bm\pi\ge\bm0:\ \bm1^\top\bm\pi=1\},
+\label{eq:simplex}
+\end{equation}
+solved by SLSQP with the analytic objective/gradient
+$\nabla = 2\,\mathrm{Re}(A^{H}(A\bm\pi-\bm y))$ and a final Euclidean projection onto
+$\Delta_K$ (\code{solve\_simplex\_least\_squares} + \code{project\_simplex}). The prototype used
+$\bm a=\mathrm{pinv}(A)\,\bm y$ then $|\,\cdot\,|$ and renormalised --- unconstrained and not a
+true simplex solution.
+
+\subsection{Conditioning diagnostics}
+A genuinely new piece: the code estimates the conditioning of the snapshot factor
+$C = \mathrm{diag}(\pi)\exp(\Lam^\top[(r-1)+i\deff\,\bp])$ (the matrix that must be
+well-conditioned for the weight solve to be identifiable) and reports $\mathrm{cond}(C)$ both
+at the estimated and (when available) the true parameters, alongside the SVD gap
+$\sigma_K/\sigma_{K+1}$ and the joint-diagonalisation residuals.
+
+%==================================================================
+\section{Difference 4 --- L-BFGS refinement with the analytic PGF gradient}\label{sec:refine}
+%==================================================================
+
+This is the item the supervisor described as ``PGD replaced by a Python solver using the true
+analytical gradient, with a more efficient descent method.''
+
+\subsection{The loss}
+ESPRIT gives a consistent but algebraic estimate; it does not minimise the PGF fit directly.
+The refinement minimises the exact (unprojected) PGF least-squares loss over all $J=MSL$
+queries,
+\begin{equation}
+F(\Lam,\bm\pi)=\frac{1}{2J}\sum_{j=1}^{J}\Big|\underbrace{\textstyle\sum_{k}\pi_k\,e^{\inner{\bb_j}{\lam_k}}}_{(A\bm\pi)_j}-\,y_j\Big|^2,
+\qquad \bb_j=(r-1)+i\deff\,\bxi_j .
+\label{eq:Floss}
+\end{equation}
+
+\subsection{Analytic gradient (\code{pgf\_gradient\_from\_raw\_params})}
+Write $\bm\rho = A\bm\pi-\bm y$ (residual). Treating the loss as a real function of real
+parameters via $|z|^2=z\bar z$,
+\begin{align}
+\frac{\partial F}{\partial \pi_k}
+ &= \frac1J\,\mathrm{Re}\!\Big(\textstyle\sum_j \overline{A_{jk}}\,\rho_j\Big)
+  = \frac1J\,\mathrm{Re}\big[(A^{H}\bm\rho)_k\big],
+ \label{eq:gw}\\[1mm]
+\frac{\partial F}{\partial \lambda_{ik}}
+ &= \frac{\pi_k}{J}\,\mathrm{Re}\!\Big(\textstyle\sum_j \overline{b_{ji}}\,\overline{A_{jk}}\,\rho_j\Big)
+  = \frac{\pi_k}{J}\,\mathrm{Re}\big[\big(B^{H}(\overline{A_{:k}}\odot\bm\rho)\big)_i\big],
+ \label{eq:gr}
+\end{align}
+using $\partial A_{jk}/\partial\lambda_{ik}=A_{jk}\,b_{ji}$. Equations \eqref{eq:gw}--\eqref{eq:gr}
+are exactly the closed forms in the code; a finite-difference check is the natural unit test.
+
+\subsection{Reparametrisation $\to$ box/unconstrained problem (\code{\_pgf\_lbfgs\_objective})}
+To turn the constrained problem ($\lam\ge0$, $\bm\pi\in\Delta_K$) into something L-BFGS-B can
+chew on, the code optimises in transformed coordinates
+\begin{equation}
+\lambda_{ik}=e^{\theta_{ik}}\quad(\text{positivity}),
+\qquad
+\pi_k=\mathrm{softmax}(\bm\eta)_k=\frac{e^{\eta_k}}{\sum_{k'} e^{\eta_{k'}}}\quad(\text{simplex}).
+\end{equation}
+The chain rule gives the transformed gradients actually returned to the optimiser:
+\begin{align}
+\frac{\partial F}{\partial\theta_{ik}} &= \lambda_{ik}\,\frac{\partial F}{\partial\lambda_{ik}},\\
+\frac{\partial F}{\partial\eta_\ell} &= \pi_\ell\Big(\frac{\partial F}{\partial\pi_\ell}-\sum_{k}\pi_k\frac{\partial F}{\partial\pi_k}\Big),
+\label{eq:softmaxjac}
+\end{align}
+the second line being the softmax Jacobian $\partial\pi_k/\partial\eta_\ell=\pi_k(\delta_{k\ell}-\pi_\ell)$
+contracted with \eqref{eq:gw}. The $\theta$ are box-bounded to
+$[\log\lambda_{\min},\log\lambda_{\max}]$; the $\eta$ are free. \code{scipy.optimize.minimize}
+with \code{method="L-BFGS-B"} and \code{jac=True} then runs to a gradient/function tolerance.
+
+\paragraph{Why this is better than the old PGD.} The old projected-gradient loop
+(still parametrised by \code{PGDConfig}: \code{eta\_rates}, \code{eta\_weights},
+\code{momentum}, a diagonal preconditioner, backtracking line search) needed hand-tuned step
+sizes and a projection onto $\Delta_K$ every iteration. The reparametrised L-BFGS-B
+(a) makes the constraints automatic (no projection), (b) gets curvature information for free
+through the quasi-Newton Hessian approximation, and (c) needs no learning-rate tuning.
+\code{refine\_pgf\_pgd\_from\_sketch} is now a thin alias to the L-BFGS routine, so existing
+call sites and configs keep working.
+
+%==================================================================
+\section{Difference 5 --- The NB1 model (between Poisson and Poisson--Gamma)}\label{sec:nb1}
+%==================================================================
+
+This is the second item the supervisor flagged: ``a distribution model between finite Poisson
+and Poisson--Gamma that works better on PBMC3k while still being compatible with JESPRIT
+(NB1).'' The PBMC3k single-cell counts are overdispersed, so a pure Poisson mixture
+underfits; a full Poisson--Gamma mixture fits but \emph{breaks} the ESPRIT algebra. NB1 is the
+middle ground that keeps the algebra.
+
+\subsection{The single-coordinate NB1 law}
+Let coordinate $q$ be negative-binomial with mean $\lambda_q$ and a \emph{dimension-wise}
+dispersion $c_q>0$ shared by all mixture components, i.e.\ Gamma shape $=c_q\lambda_q$ and
+$\mathrm{Var}=\lambda_q(1+1/c_q)$. Its PGF is
+\begin{equation}
+\E\!\big[t^{X_q}\big]
+ = \Big(1+\tfrac{1-t}{c_q}\Big)^{-c_q\lambda_q}
+ = \exp\!\big(\lambda_q\,\varphi_{c_q}(t)\big),
+\qquad
+\boxed{\ \varphi_{c}(t)=c\,\log\!\frac{c}{c+1-t}\ }
+\label{eq:nb1phi}
+\end{equation}
+(\code{nb1\_phi}). As $c\to\infty$, $\varphi_c(t)\to t-1$ and the law collapses to Poisson; small
+$c$ is heavy overdispersion. The mean is $\lambda_q$ for every $c$, so $\lambda$ keeps its
+meaning across the family.
+
+\subsection{Why NB1 is JESPRIT-compatible but NB2 is not}
+The crucial property is that \eqref{eq:nb1phi} is \emph{linear in the rate} $\lambda_q$.
+For the product mixture,
+\begin{equation}
+G_X(\bt)=\sum_{k=1}^{K}\pi_k\prod_{q=1}^d \exp\!\big(\lambda_{qk}\varphi_{c_q}(t_q)\big)
+        =\sum_{k=1}^{K}\pi_k\exp\!\big(\inner{\lam_k}{\bm w}\big),
+\qquad \bm w := \bm\varphi_{\bm c}(\bt),
+\label{eq:nb1pgf}
+\end{equation}
+where the warp acts coordinate-wise, $w_q=\varphi_{c_q}(t_q)$. In the \emph{warped variable
+$\bm w$} this is identical to the finite-Poisson PGF \eqref{eq:pgf} with $\bt-\bm1$ replaced by
+$\bm w$. Therefore, if we choose the warped query to be the very same damped line,
+$\bm w=(r-1)+i\deff\,\bxi$, and evaluate the empirical PGF at the \emph{pre-image}
+\begin{equation}
+\bt^{\mathrm{act}} = \bm\varphi_{\bm c}^{-1}(\bm w),
+\qquad
+\varphi_c^{-1}(w)=c+1-c\,e^{-w/c}
+\label{eq:nb1inv}
+\end{equation}
+(\code{nb1\_phi\_inv}), then the sketch values inherit \emph{exactly} the sum-of-exponentials
+structure \eqref{eq:soe} and the entire JESPRIT pipeline (global SVD, joint diagonalisation,
+NNLS rates, simplex weights, L-BFGS refinement) applies verbatim. By contrast, a full
+Poisson--Gamma ``NB2'' factor $(1-\frac{\lambda}{s}(t-1))^{-s}$ with a free per-component shape
+$s$ has log-PGF $-s\log(1-\frac{\lambda}{s}(t-1))$, which is \emph{not} linear in $\lambda$ and
+admits no component-independent warp --- so NB2 cannot be folded into ESPRIT.
+
+\subsection{Dispersion estimation}
+The dimension-wise $c_q$ is estimated once by moments (\code{estimate\_nb1\_dispersion\_mom}):
+matching $\mathrm{Var}=\lambda(1+1/c)$ to the empirical mean/variance gives
+\begin{equation}
+c_q = \frac{\overline{X_q}}{\,\widehat{\mathrm{Var}}(X_q)-\overline{X_q}\,},
+\end{equation}
+clipped to $[10^{-3},10^{6}]$; non-overdispersed coordinates ($\widehat{\mathrm{Var}}\le\overline X$)
+get $c_q=c_{\max}$, i.e.\ effectively Poisson.
+
+\subsection{Feasibility of the warped damping (\code{\_nb1\_query\_parameters})}
+The one subtlety: the empirical PGF must still be queried at points with
+$|\bt^{\mathrm{act}}|\le1$. Write $w=a+iy$ with real shift $a=r-1\le0$ and
+$y=\deff\,\xi$. With $\rho:=e^{-a/c}\ge1$,
+\[
+t^{\mathrm{act}} = (c+1)-c\rho\cos(y/c) + i\,c\rho\sin(y/c),
+\qquad
+|t^{\mathrm{act}}|^2 = (c+1)^2 - 2c(c+1)\rho\cos(y/c) + c^2\rho^2 .
+\]
+Imposing $|t^{\mathrm{act}}|^2\le1$ is a quadratic in $\rho$,
+\begin{equation}
+c\,\rho^2 - 2(c+1)\cos(y/c)\,\rho + (c+2)\ \le\ 0,
+\end{equation}
+feasible iff the discriminant $D=(c+1)^2\cos^2(y/c)-c(c+2)\ge0$, with admissible band
+\begin{equation}
+\rho\in[\rho_-,\rho_+],\qquad
+\rho_\pm=\frac{(c+1)\cos(y/c)\pm\sqrt{D}}{c}.
+\end{equation}
+Since $\rho=e^{-a/c}\ge1$ we clip $\rho_-\leftarrow\max(\rho_-,1)$ and translate back to the
+real shift $a=-c\log\rho\in[-c\log\rho_+,\,-c\log\rho_-]$. Taking the tightest bound across all
+coordinates and queries gives a feasible interval $[a_{\mathrm{lower}},a_{\mathrm{upper}}]$;
+the code picks $r=1+a_{\mathrm{upper}}$ (the least damping), and if no feasible $a$ exists it
+halves $\alpha$ (shrinks $\deff$) and retries, up to $80$ times. This is the exact loop in
+\code{\_nb1\_query\_parameters}; the resulting $\bt^{\mathrm{act}}$ are stored in the sketch as
+\code{actual\_query\_points}.
+
+%==================================================================
+\section{Likelihood baselines (model-level comparators)}
+%==================================================================
+
+The cikm package ships three hand-written EM fitters, used as comparators (not as part of the
+sketching pipeline). All share the standard product-mixture E-step
+(responsibilities via \code{logsumexp}) and differ only in the per-coordinate emission law and
+its M-step.
+
+\begin{table}[h]
+\centering
+\small
+\begin{tabular}{p{3.2cm} p{4.2cm} p{6.5cm}}
+\toprule
+File / fitter & Emission law & M-step specifics \\
+\midrule
+\code{em.py}\newline \code{fit\_poisson\_em} &
+Product Poisson, $\mathrm{Var}=\mathrm{mean}$ &
+closed-form $\lambda_{qk}=\frac{\sum_i r_{ik}x^{(i)}_q}{\sum_i r_{ik}}$. \\
+\code{poisson\_gamma.py}\newline \code{fit\_poisson\_gamma\_em} &
+``NB2'': per-(coord,comp) free Gamma shape $s_{qk}$, $\mathrm{Var}=\mu+\mu^2/s$ &
+mean closed-form; each $s_{qk}$ by a 1-D bounded Newton/Brent on the responsibility-weighted
+NB log-likelihood (MoM warm start). \\
+\code{poisson\_gamma\_nb1.py}\newline \code{fit\_poisson\_gamma\_nb1\_em} &
+``NB1'': dimension-wise dispersion $c_q$ shared across components, shape $=c_q\mu_{qk}$ &
+mean closed-form; each $c_q$ by a 1-D bounded search on
+$\log c$ over all components of coordinate $q$. \\
+\bottomrule
+\end{tabular}
+\caption{The three EM baselines. NB1 here is the \emph{likelihood} counterpart of the warped
+sketch model of \S\ref{sec:nb1}, sharing the same $\mathrm{Var}=\mu(1+1/c)$ parametrisation.}
+\end{table}
+
+The NB2 log-pmf uses $\mathrm{shape}\cdot\log\frac{\mathrm{shape}}{\mathrm{shape}+\mu}
++x\log\frac{\mu}{\mathrm{shape}+\mu}$ with free shape; the NB1 log-pmf substitutes
+$\mathrm{shape}=c\mu$ and simplifies to
+$c\mu\log\frac{c}{c+1}-x\log(c+1)$ plus the Gamma-ratio terms.
+
+%==================================================================
+\section{Metrics and experimental design}
+%==================================================================
+
+\subsection{Error metrics (\code{metrics.py})}
+\begin{itemize}[leftmargin=2em, itemsep=1pt]
+  \item \textbf{Component matching} by the Hungarian algorithm on a rate+weight cost (same idea
+        as the prototype's \code{compute\_error}, but the cost is normalised by
+        $\max(|\lambda|,1)$ and includes an explicit penalty for unmatched components when
+        $K_{\mathrm{est}}\ne K_{\mathrm{true}}$).
+  \item \textbf{Rate / weight relative error} after matching.
+  \item \textbf{PGF reconstruction error} $\|\widehat G - G_{\mathrm{model}}\|/\|\widehat G\|$ on a
+        held-out query set.
+  \item \textbf{Distributional fit}: per-coordinate \emph{Hellinger} and a stabilised
+        \emph{$\chi^2$} between the empirical marginal histogram and the model marginal pmf,
+        averaged over coordinates.
+\end{itemize}
+
+\subsection{Sketch-vs-raw budget study (\code{sketch\_vs\_raw.py})}
+This is the headline scalability argument. Raw storage is $nd$ scalars; the sketch is a
+\emph{fixed} $2J=2MSL$ real scalars (real+imag), independent of $n$. The driver compares, at a
+\emph{matched storage budget}:
+\begin{itemize}[leftmargin=2em, itemsep=1pt]
+  \item \emph{Full raw EM} (uses all $nd$ scalars) --- the accuracy ceiling;
+  \item \emph{Raw subset EM} on $m\approx 2J/d$ samples --- EM at the same storage as the sketch;
+  \item \emph{PGF-JESPRIT} and \emph{PGF-JESPRIT + L-BFGS} --- from $2J$ sketch scalars.
+\end{itemize}
+A separate $n$-sweep holds $J$ fixed and varies $n\in[10^3,3\!\cdot\!10^5]$, decomposing runtime
+into the $O(n)$ sketch-construction step and the $n$-independent recovery step --- the
+plot that shows recovery cost flat in $n$ while EM grows.
+
+\subsection{Drivers and configs}
+\code{experiments.py} runs the synthetic grid (regimes \emph{separated}, \emph{overlap},
+\emph{underfit}, \emph{rare\_large\_count}), a $\Delta$-sensitivity sweep, and the real-data
+study (Affairs, PBMC3k) wiring all methods --- including \emph{NB1-PGF-JESPRIT} and the three EM
+baselines --- through a shared sketch. The YAML configs in \code{configs/} (e.g.\
+\code{real\_cikm2026.yaml}) select methods, sketch offsets $M,S,L$, \code{delta\_scale}, and NB1
+dispersion bounds.
+
+%==================================================================
+\section{Engineering differences that affect the math}
+%==================================================================
+\begin{itemize}[leftmargin=2em, itemsep=2pt]
+  \item \textbf{Count-table fast path} (\code{\_sample\_pgf\_lines\_from\_count\_tables}). For
+        integer data, the term $\prod_q t_q^{x_q}$ is computed from precomputed power tables
+        $\{t_q^{\,0},\dots,t_q^{\,\max}\}$ and (optionally) duplicate-row compression, turning the
+        $O(nJd)$ empirical PGF into table look-ups. Numerically identical to the naive sum, just
+        far faster on real count matrices. The prototype only had the batched naive sum
+        (with \code{joblib} threading).
+  \item \textbf{Complex sketch noise} (\code{\_add\_complex\_noise}). Optional circular Gaussian
+        noise at a target SNR is injected into the sketch values so robustness to sketch error
+        can be studied; powers (clean / noise / total) are recorded.
+  \item \textbf{Per-direction spacing validation} (\code{\_direction\_spacings}). The code
+        verifies each ESPRIT row is a regular grid shared across snapshots and extracts the
+        spacing $(\Delta\ell)_m$ used in the phase$\to$rate division; non-zero offset starts are
+        allowed and absorbed into $C$.
+  \item \textbf{Rich diagnostics}. Every fit returns SVD gap, $\mathrm{cond}(U)$,
+        $\mathrm{cond}(V)$, joint off-diagonal ratio, $\Psi$ residuals, max phase vs.\
+        $0.9\pi$, projection residuals, snapshot-factor conditioning, and timing split into
+        sketch / recovery / refinement. The prototype returned only point estimates.
+\end{itemize}
+
+%==================================================================
+\section{Summary of conceptual deltas}
+%==================================================================
+
+\begin{table}[h]
+\centering
+\small
+\renewcommand{\arraystretch}{1.25}
+\begin{tabular}{p{3.4cm} p{5.0cm} p{5.6cm}}
+\toprule
+Stage & Prototype (\code{JESPRIT/src}) & cikm (\code{src/pgf\_jesprit}) \\
+\midrule
+PGF query point & $\bt=\bm1+i\Delta\bxi$, $|\bt|>1$ & $\bt=r+i\deff\bxi$, $|\bt|\le1$, with $r=1-\frac{\log n}{2L_{\mathrm{data}}}$ ($\S\ref{sec:damping}$) \\
+Subspace & global SVD & global SVD (same) \\
+Joint diag.\ & unitary Cardoso--Souloumiac Jacobi & similarity (random-combination eigendecomp., off-diag.\ energy selection) \\
+Rate recovery & $\frac1\Delta U^{+}\bm\phi$ then $|\mathrm{Re}|$ & per-spacing phase $\to$ \code{nnls} ($\lam\ge0$) (\S\ref{sec:constrained}) \\
+Weight recovery & $\mathrm{pinv}(A)\bm y$, $|\cdot|$, renormalise & simplex-constrained LS (SLSQP) (\S\ref{sec:constrained}) \\
+Refinement & none & L-BFGS-B on exact PGF loss, analytic gradient, log/softmax reparam (\S\ref{sec:refine}) \\
+Distribution & finite Poisson only & finite Poisson \emph{and} NB1 warp (\S\ref{sec:nb1}) \\
+Baselines & --- & Poisson EM, NB2 PG EM, NB1 EM \\
+Phase unwrapping & optional, found to hurt & replaced by a $0.9\pi$ wrapping \emph{warning} \\
+Diagnostics & none & conditioning, gaps, residuals, timings \\
+\bottomrule
+\end{tabular}
+\caption{Where the supervisor's code diverges from the prototype. The three rows in bold-math
+sections ($\S\ref{sec:damping}$, $\S\ref{sec:refine}$, $\S\ref{sec:nb1}$) are the substantive
+new derivations.}
+\end{table}
+
+\paragraph{One-line takeaways.}
+\begin{enumerate}[leftmargin=2em, itemsep=1pt]
+  \item \textbf{Damping} ($\S\ref{sec:damping}$) is the fix for the prototype's
+        large-rate instability: keep $|\bt|\le1$ and tune $r$ so the heaviest counts hit the
+        $n^{-1/2}$ noise floor.
+  \item \textbf{L-BFGS refinement} ($\S\ref{sec:refine}$) closes the gap between ``algebraically
+        consistent'' and ``actually minimises the PGF loss'', using the closed-form gradient and
+        constraint-free coordinates --- hence the supervisor's ``good performance after the GD
+        step''.
+  \item \textbf{NB1} ($\S\ref{sec:nb1}$) is the only overdispersion model whose log-PGF is
+        \emph{linear in the rate}; the coordinate warp $\varphi_c$ maps it back onto the exact
+        sum-of-exponentials that ESPRIT needs, which is why it fits PBMC3k yet stays
+        JESPRIT-compatible.
+\end{enumerate}
+
+\end{document}
