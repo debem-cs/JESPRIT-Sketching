@@ -8,9 +8,14 @@
     positioning
 }
 
-% CIKM 2026 short-paper track: 2-column ACM sigconf, 4 pages of main content
-% including any appendix, plus unlimited pages for GenAI disclosure and references.
-% For camera-ready, remove anonymous=true and review=true, then fill author blocks.
+% Draft for a workshop submission (e.g. an ECML-PKDD / CIKM workshop such as NFMCP);
+% 2-column ACM sigconf. The strict 4-page CIKM short-track limit no longer applies, so
+% ~6 pages is acceptable. For camera-ready, remove anonymous=true and review=true.
+%
+% NOTE ON CUTS: per reviewer feedback, the heavy technical derivations (damped-query
+% construction, the similarity-diagonalization solver internals, and the refinement
+% gradient) are kept only as their core statements; the full details are preserved
+% inside \begin{comment}...\end{comment} blocks so they can be restored if needed.
 
 \settopmatter{printacmref=false}
 \setcopyright{none}
@@ -21,6 +26,7 @@
 \usepackage{booktabs}
 \usepackage{enumitem}
 \usepackage{xspace}
+\usepackage{comment} % for reversible \begin{comment}...\end{comment} blocks
 
 \newcommand{\PGF}{\mathrm{PGF}\xspace}
 \newcommand{\E}{\mathbb{E}}
@@ -48,14 +54,7 @@
 \begin{document}
 
 \begin{abstract}
-Mixtures of Poisson distributions are widely used to model heterogeneous count data, but classical likelihood-based inference can be costly on large datasets and sensitive to initialization. 
-We study a compressed alternative based on empirical probability-generating-function sketches. 
-The key observation is that, when the PGF of a finite mixed Poisson model is sampled along complex lines, the resulting measurements form multidimensional sums of exponentials.
-We exploit this structure with a joint ESPRIT recovery procedure: the empirical PGF is evaluated at \emph{damped} query points that remain inside the closed unit disk, a global multi-snapshot subspace is estimated from several sampling directions, the per-direction rotational-invariance matrices are aligned by a common \emph{non-unitary} (similarity) diagonalization, Poisson rates are recovered by a non-negative least-squares fit of their directional projections, and mixture weights by a simplex-constrained least-squares fit. A final refinement minimizes the exact PGF least-squares loss with a quasi-Newton method using a closed-form analytic gradient.
-Compared with marginal PGF--ESPRIT pipelines, the joint formulation avoids a combinatorial cross-coordinate alignment step and directly targets multidimensional components.
-Our experiments distinguish two questions: algorithmic comparisons under the same finite product-Poisson mixture model, and model-level comparisons involving alternative count-data models such as Poisson--Gamma variants.
-Because the sketch has a fixed size that is independent of the number of observations $n$, the recovery cost does not grow with $n$: empirically, the spectral fitting step stays flat while full-data EM grows linearly, and the sketch is more than two orders of magnitude smaller than the raw data at $n=3\times10^5$.
-\todo{Add final accuracy summary: PGF error, Hellinger/chi-square distances, and parameter recovery error.}
+Finite mixtures of Poisson distributions are a standard model for heterogeneous count data, but likelihood-based inference such as Expectation--Maximization is iterative and scales with the dataset size. We study a compressed alternative: the dataset is summarized once by sampling its empirical probability-generating function (PGF) along complex lines, yielding a fixed-size sketch. For a finite mixed-Poisson model this sketch is a multidimensional sum of exponentials, which a joint ESPRIT procedure turns directly into the mixture rate vectors and weights, without any combinatorial cross-coordinate pairing. Damping the query points keeps the sketch numerically stable on overdispersed data. Because the sketch size is independent of the number of observations $n$, both storage and recovery cost are independent of $n$; our experiments confirm that the recovery stays flat as full-data EM grows linearly, while the sketch is orders of magnitude smaller than the raw data.
 \end{abstract}
 
 \begin{CCSXML}
@@ -89,9 +88,9 @@ Because the sketch has a fixed size that is independent of the number of observa
 \section{Introduction}
 
 Many datasets consist of nonnegative integer-valued observations: numbers of events, interactions, messages, visits, reads, or molecular counts. 
-Finite mixtures of Poisson distributions provide a simple and interpretable model for such data. 
-They describe heterogeneous populations through a finite number of latent components, each associated with a Poisson rate vector and a mixture weight. 
-Estimating these parameters is a classical latent-variable inference problem, most commonly addressed through maximum-likelihood methods such as Expectation--Maximization (EM) \cite{dempster1977em,karlis2005em}. 
+Finite mixtures of Poisson distributions provide a simple and interpretable model for such data.
+They describe heterogeneous populations through a finite number of latent components, each associated with a Poisson rate vector and a mixture weight.
+Estimating these parameters is a classical latent-variable inference problem, most commonly addressed through maximum-likelihood methods such as Expectation--Maximization (EM) \cite{dempster1977em,karlis2005em}.
 Although effective, EM-type procedures remain iterative, can be sensitive to initialization, and require repeated passes over the data or over sufficient statistics whose size grows with the model and data dimension.
 
 Sketching offers an alternative route for large-scale inference. 
@@ -101,7 +100,7 @@ Indeed, if $X$ is a Poisson random variable with rate $\lambda$, then its PGF is
 \[
     G_X(t) = \mathbb{E}[t^X] = \exp(\lambda(t-1)).
 \]
-Consequently, the PGF of a finite Poisson mixture is a weighted sum of exponentials. 
+Consequently, the PGF of a finite Poisson mixture is a weighted sum of exponentials.
 This algebraic structure suggests that mixture estimation from empirical PGF samples can be viewed as a harmonic retrieval problem, opening the door to spectral methods such as ESPRIT \cite{roy1989esprit}.
 
 In this paper, we study a multidimensional sketching approach for Poisson mixture estimation based on \emph{joint ESPRIT}. 
@@ -112,9 +111,9 @@ Compared with coordinate-wise spectral recovery, the joint formulation is design
 \textbf{Contributions.} 
 The contributions of this work are as follows:
 \begin{itemize}[leftmargin=*]
-    \item We formulate finite Poisson mixture estimation from empirical PGF sketches as a multidimensional harmonic retrieval problem, and introduce a \emph{damped} query construction that keeps every evaluation point inside the closed unit disk while preserving the exact sum-of-exponentials structure, controlling the variance of the empirical PGF.
-    \item We adapt a random-base joint ESPRIT pipeline to recover multidimensional Poisson rate vectors from a fixed-size PGF sketch, avoiding independent coordinate-wise pairing. The pipeline uses a non-unitary similarity diagonalization for component alignment, non-negative least squares for rates, simplex-constrained least squares for weights, and an analytic-gradient quasi-Newton refinement of the exact PGF loss.
-    \item We evaluate the proposed approach under two distinct settings: algorithmic comparison within the finite product-Poisson mixture model, and model-level comparison with alternative count-data models, and we quantify the storage and runtime savings of the fixed-size sketch as $n$ grows. \todo{Add final accuracy findings.}
+    \item We cast finite Poisson mixture estimation from empirical PGF sketches as a multidimensional harmonic retrieval problem, and introduce a \emph{damped} query construction that keeps the sketch numerically stable while preserving its exact sum-of-exponentials structure.
+    \item We adapt a random-base joint ESPRIT pipeline that recovers multidimensional Poisson rate vectors from a fixed-size sketch without coordinate-wise pairing, followed by a constrained recovery of rates and weights and a refinement that minimizes the exact PGF loss.
+    \item We show empirically that, because the sketch size is fixed, the storage and recovery cost of the method are independent of the number of observations, in contrast to full-data EM.
 \end{itemize}
 
 \section{Model and PGF Sketch}
@@ -176,7 +175,8 @@ $p_1,\ldots,p_S\in\R^d$, shared across all directions, and sample the lines
     \ell=0,\ldots,N_m-1.
     \label{eq:line_sampling}
 \end{equation}
-The PGF is evaluated at the \emph{damped} complex query points
+Figure~\ref{fig:2d_sampling_scheme} illustrates this random-base line sampling in two
+dimensions. The PGF is evaluated at the \emph{damped} complex query points
 \begin{equation}
     t_{m,s,\ell}
     =
@@ -186,15 +186,19 @@ The PGF is evaluated at the \emph{damped} complex query points
     \ \ \forall q,
     \label{eq:pgf_queries}
 \end{equation}
-where $r\in(0,1]$ is a real damping radius and $\deff>0$ an effective sketching
-scale, both derived below from a single nominal scale $\Delta>0$. The undamped
-choice $t=\mathbf{1}+\jj\Delta\xi$ used in marginal pipelines corresponds to
-$r=1$, $\deff=\Delta$; it places the query points \emph{outside} the unit disk,
-since $|1+\jj\Delta\xi_q|=\sqrt{1+\Delta^2\xi_q^2}>1$. The empirical PGF terms
-$\prod_q t_q^{x_q^{(i)}}$ then have modulus $\prod_q|t_q|^{x_q^{(i)}}$ that grows
-geometrically in the counts, so $\widehat G_X$ has heavy-tailed variance on
-overdispersed data. Damping the real part to $r<1$ bounds each factor by one.
+where $r\in(0,1]$ is a real damping radius and $\deff>0$ an effective sketching scale
+(the marginal choice $t=\mathbf{1}+\jj\Delta\xi$ is the undamped case $r=1$, $\deff=\Delta$).
+The radius must be chosen with care. For a single observation, the empirical PGF term
+has modulus $\prod_q|t_q|^{x_q^{(i)}}$: with $|t_q|>1$ it grows geometrically in the
+counts, so $\widehat G_X$ becomes high-variance on overdispersed data, while a very small
+$r$ pulls every query point toward $\mathbf{1}$ and washes out the exponential structure.
+A good radius therefore balances this damping bias against the $O(n^{-1/2})$ sampling
+fluctuation of $\widehat G_X$; we use a simple data-driven rule, detailed in the released
+code, that keeps every query point inside the unit disk.
 
+% ===== CUT (kept for reference): explicit damped-query construction, choice of r and delta_eff.
+% Restore by removing the surrounding comment environment. =====
+\begin{comment}
 \paragraph{Damped query construction.}
 Let $L_{\mathrm{data}}$ be a robust upper proxy for the per-observation total
 count, taken as the empirical $0.95$ quantile of $\sum_{q} x_q^{(i)}$. We target a
@@ -228,6 +232,8 @@ Thus when the nominal scale already keeps the points well inside the disk
 ($b_0\le b_\star$) no damping is needed ($\alpha=1$, $\deff=\Delta$); otherwise the
 imaginary spread is clamped to $b_\star$ and the radius to $r_\star$. By
 construction $|t_{m,s,\ell,q}|\le1$ everywhere.
+\end{comment}
+% ===== end CUT =====
 
 At the population level, the damped queries still give an \emph{exact} sum of
 exponentials. Since $t_{m,s,\ell}-\mathbf{1}=(r-1)\mathbf{1}+\jj\deff\,\xi_{m,s,\ell}$,
@@ -437,6 +443,8 @@ change of basis by a \emph{non-unitary} (similarity) joint diagonalization:
     \right\|_F^2.
     \label{eq:jointdiag}
 \end{equation}
+% ===== CUT (kept for reference): random-combination similarity-diagonalization solver internals. =====
+\begin{comment}
 The solver exploits the fact that almost any linear combination of simultaneously
 diagonalizable matrices has the same eigenvectors. We draw random complex
 coefficients $\gamma^{(j)}\in\C^M$, form the combination
@@ -448,14 +456,15 @@ off-diagonal energy ratio
     =
     \frac{\sum_{m}\big\|\operatorname{offdiag}(T\widehat\Phi_m T^{-1})\big\|_F^2}
          {\sum_{m}\big\|\operatorname{diag}(T\widehat\Phi_m T^{-1})\big\|_F^2}.
-    \label{eq:offdiag_ratio}
 \end{equation}
-Over a small fixed number of trials (the deterministic all-ones combination plus
-$63$ random draws) we keep the basis with the smallest $\eta$, and we record
-$\operatorname{cond}(V^{(j)})$ as a stability diagnostic: a near-singular candidate
-basis signals poorly separated components. This replaces the unitary Jacobi sweep of
-\cite{cardoso1996jacobi}, which assumes an orthogonal diagonalizer that the ESPRIT
-matrices do not in general admit. The jointly aligned node estimates are then
+Over a small fixed number of trials we keep the basis with the smallest $\eta$, and we
+record $\operatorname{cond}(V^{(j)})$ as a stability diagnostic: a near-singular candidate
+basis signals poorly separated components.
+\end{comment}
+% ===== end CUT =====
+Unlike a unitary Jacobi sweep \cite{cardoso1996jacobi}, which constrains the change of
+basis to be orthogonal, this non-unitary scheme allows the genuinely non-orthogonal
+eigenbasis $T_0$ of the ESPRIT matrices. The jointly aligned node estimates are then
 obtained as
 \begin{equation}
     \widehat \rho_{m,k}
@@ -472,6 +481,8 @@ obtained as
 The common diagonalizer fixes the component ordering across directions, avoiding a
 separate combinatorial pairing step.
 
+% ===== CUT (kept for reference): full rate-recovery paragraph (wrapped LS, NNLS, step/wrapping notes). =====
+\begin{comment}
 \paragraph{Rate reconstruction by non-negative least squares.}
 For each component $k$, the recovered phases satisfy
 \begin{equation}
@@ -524,6 +535,26 @@ directional projections. A regular sampling step $h_m$ along direction $m$ simpl
 replaces $\deff$ by $\deff\,h_m$ in $g_{m,k}$. We flag a phase-wrapping risk when
 $\max_{m,k}|\widehat\phi_{m,k}|$ approaches $\pi$ within a safety margin, since the
 $q=0$ assumption is then unsafe.
+\end{comment}
+% ===== end CUT =====
+
+\paragraph{Rate reconstruction.}
+The aligned phases satisfy
+$\widehat\phi_{m,k}\approx\deff\langle\lambda_k,u_m\rangle \pmod{2\pi}$. The damped
+scale is chosen so that the phases do not wrap; dropping the modulus, we form the
+directional projections $g_{m,k}=\widehat\phi_{m,k}/\deff\approx\langle\lambda_k,u_m\rangle$
+and recover each rate by non-negative least squares,
+\begin{equation}
+    \widehat\lambda_k
+    =
+    \arg\min_{\lambda\in\R_+^d}
+    \left\| U\lambda - g_k \right\|_2^2,
+    \qquad
+    g_k=[g_{1,k},\ldots,g_{M,k}]^\top,
+    \label{eq:nonwrapped_ls}
+\end{equation}
+which imposes nonnegative rates. The condition $\operatorname{rank}(U)=d$ makes the
+rates identifiable from their directional projections.
 
 \paragraph{Mixture-weight estimation.}
 Once $\widehat\Lambda$ has been recovered, the mixture weights are estimated from all
@@ -555,13 +586,15 @@ probability simplex
     =
     \{p\in\R_+^K:\mathbf{1}^\top p=1\}.
 \]
-This is a convex quadratic program in $p$; we solve it with a sequential
-quadratic program (SLSQP) using the analytic gradient
-$2\,\Re\big(A^{*}(Ap-y)\big)$, where $A_{j,k}=e^{\langle\widehat\lambda_k,t_j-\mathbf{1}\rangle}$
-stacks the model over all query indices $j=(m,s,\ell)$ and $y_j=\widehat G_X(t_j)$,
-followed by a Euclidean projection onto $\Delta_K$. The weights
-$\alpha_{m,s,\ell}\ge 0$ may be set to one, chosen from empirical PGF variance
-estimates, or used to discard numerically unstable query points.
+This is a convex quadratic program in $p$, which we solve with a standard
+simplex-constrained least-squares solver.
+% ===== CUT (kept for reference): weight-solver detail. =====
+% We solve it with a sequential quadratic program (SLSQP) using the analytic gradient
+% 2 Re( A^* (A p - y) ), where A_{j,k} = e^{<\hat\lambda_k, t_j - 1>} stacks the model over
+% all query indices j=(m,s,l) and y_j = \hat G_X(t_j), followed by Euclidean projection onto Delta_K.
+% ===== end CUT =====
+The weights $\alpha_{m,s,\ell}\ge 0$ may be set to one or used to down-weight
+numerically unstable query points.
 
 \paragraph{Refinement of the exact PGF loss.}
 The recovery above is algebraic and does not directly minimize a fit criterion. We
@@ -580,12 +613,15 @@ $y_j=\widehat G_X(t_j)$):
     \Big|^2 .
     \label{eq:refine_loss}
 \end{equation}
-This is the same objective targeted by sketched-mixture learning with preconditioned
-gradient descent (PGD) \cite{gabet2024pgd}; we instead minimize it with a limited-memory
-quasi-Newton method (L-BFGS-B) supplied with a \emph{closed-form analytic gradient},
-which uses the curvature of the loss and converges in far fewer iterations, giving an
+The same objective underlies sketched-mixture learning by preconditioned gradient
+descent (PGD) \cite{gabet2024pgd}; we minimize it instead with a limited-memory
+quasi-Newton method (L-BFGS), using a closed-form analytic gradient and a log/softmax
+reparametrization that keeps the rates positive and the weights on the simplex.
+Initialized at the spectral estimate, it converges in a few iterations and yields an
 accurate fit directly after the spectral step.
 
+% ===== CUT (kept for reference): refinement reparametrization and analytic gradient. =====
+\begin{comment}
 To enforce positivity and the simplex constraint without projections inside the
 optimizer, we reparametrize into unconstrained variables
 \begin{equation}
@@ -622,6 +658,8 @@ Jacobian $\operatorname{diag}(\pi)-\pi\pi^{\top}$. The loss \eqref{eq:refine_los
 the exact gradient \eqref{eq:grad_pi}--\eqref{eq:grad_reparam} are passed together to
 L-BFGS-B, so no finite differences are needed. In the codebase this refinement is the
 entry point that previously ran PGD, now backed by the analytic-gradient solver.
+\end{comment}
+% ===== end CUT =====
 
 
 \begin{figure}[t]
@@ -756,7 +794,9 @@ We consider three representative regimes:
     \item \emph{Overlapping components}, where several rate vectors are close and the inverse problem becomes harder;
     \item \emph{Under-specified fitting}, where the fitted number of components is smaller than the true one, to test robustness under model mismatch.
 \end{itemize}
-\todo{Insert the final experimental grid, e.g., $K\in\{2,3,5,10\}$, $d\in\{1,3,10\}$, and $n\in\{10^3,10^4,10^5\}$.}
+For the scalability study reported below we fix $K=3$ components in $d=3$ dimensions,
+use a sketch of size $M=S=L=9$ (so $J=729$), and sweep $n$ from $10^3$ to
+$3\times10^5$ across the separated and overlapping regimes.
 
 \paragraph{Compared methods.}
 For algorithmic comparison, the main comparator is EM for the finite product-Poisson mixture model in \eqref{eq:model}.
@@ -774,21 +814,18 @@ For both synthetic and real data, we report the PGF reconstruction error, the He
 The distributional metrics are computed per coordinate and then averaged over dimensions.
 
 \paragraph{Sketch parameters.}
-The PGF--JESPRIT estimator is controlled by the number of sampling directions $M$, the
-number of shared base points (snapshots) $S$, the number of PGF samples per direction
-$L=N_m$, and the nominal sampling scale $\Delta$. The sketch then consists of $J=MSL$
-complex PGF evaluations, stored as $2J$ real scalars. The damped construction
-\eqref{eq:rstar}--\eqref{eq:damping_scale} derives the effective scale
-$\deff=\alpha\Delta$ and the damping radius $r$ from $\Delta$ and the data,
-guaranteeing $|t|\le 1$ at every query.
-Unless otherwise stated, these parameters are fixed across trials.
-We additionally report a short sensitivity study with respect to $\Delta$, since it
-controls the trade-off between numerical conditioning and phase wrapping: too small a
-value makes the exponential nodes difficult to separate, while too large a value drives
-$\deff$ to be clamped by the damping and pushes the phases
-$\deff\langle\lambda_k,u_m\rangle$ toward $\pm\pi$. Damping removes the magnitude
-blow-up of the empirical PGF that the undamped queries ($|t|>1$) would otherwise incur.
+The estimator is controlled by the number of sampling directions $M$, the number of
+shared base points (snapshots) $S$, the number of PGF samples per direction $L=N_m$,
+and the nominal sampling scale $\Delta$, from which the damping fixes the effective
+scale $\deff$ and radius $r$ so that every query stays in the unit disk. The sketch is
+then $J=MSL$ complex PGF evaluations, stored as $2J$ real scalars, independently of $n$.
+Unless otherwise stated these are fixed across trials. We also report a short
+sensitivity study in $\Delta$, which trades node conditioning against phase wrapping:
+too small a $\Delta$ makes the exponential nodes hard to separate, while too large a
+$\Delta$ pushes the phases $\deff\langle\lambda_k,u_m\rangle$ toward $\pm\pi$.
 
+% ===== CUT (kept for reference): synthetic accuracy table; uncomment and fill once results exist. =====
+\begin{comment}
 \begin{table}[t]
 \centering
 \caption{Synthetic algorithmic comparison under the finite product-Poisson mixture model. Errors are reported as mean $\pm$ standard deviation over independent trials; ``--'' marks values pending the final runs. \todo{Fill from the synthetic experiments.}}
@@ -811,29 +848,23 @@ Underfit & \ \ + L-BFGS & -- & -- & -- \\
 \bottomrule
 \end{tabular}
 \end{table}
+\end{comment}
+% ===== end CUT =====
 
 \begin{figure}[t]
     \centering
     \includegraphics[width=\linewidth]{figures/sketch_fixed_J_runtime_vs_n.pdf}
-    \caption{Runtime vs.\ number of samples $n$ at a \emph{fixed} sketch size
-    ($M\!=\!S\!=\!L\!=\!9$, so $J\!=\!729$; $K\!=\!d\!=\!3$), medians over seeds and
-    regimes with interquartile bands, log--log. Full-data EM grows linearly in $n$,
-    whereas the spectral fitting step (\emph{sketch fitting only}: joint ESPRIT plus
-    L-BFGS refinement) is essentially flat in $n$. Only the one-pass sketch
-    construction grows with $n$, and the sketch total stays more than an order of
-    magnitude below EM beyond $n\!\approx\!10^4$ (about $35\times$ faster at
-    $n\!=\!3\times10^5$).}
+    \caption{Runtime vs.\ number of samples $n$ at a fixed sketch size
+    ($M\!=\!S\!=\!L\!=\!9$, $J\!=\!729$, $K\!=\!d\!=\!3$); medians over seeds and regimes
+    with interquartile bands, log--log.}
     \label{fig:runtime}
 \end{figure}
 
 \begin{figure}[t]
     \centering
     \includegraphics[width=\linewidth]{figures/sketch_fixed_J_storage_vs_n.pdf}
-    \caption{Stored scalars vs.\ number of samples $n$, log--log, same fixed sketch
-    size as Fig.~\ref{fig:runtime}. Raw storage grows as $nd$, while the sketch is a
-    fixed $2J$ real scalars independent of $n$. At $n\!=\!3\times10^5$ ($d\!=\!3$) the
-    sketch is more than two orders of magnitude smaller than the raw data
-    ($2J\!\approx\!1.5\times10^3$ vs.\ $nd\!\approx\!9\times10^5$).}
+    \caption{Stored scalars vs.\ number of samples $n$ at the same fixed sketch size as
+    Fig.~\ref{fig:runtime}, log--log.}
     \label{fig:storage}
 \end{figure}
 
@@ -843,6 +874,8 @@ These experiments are not intended to claim that finite Poisson mixtures are uni
 Rather, they test whether the fitted mixtures reproduce realistic count histograms, including sparsity, imbalance, and overdispersion. 
 On these datasets, Poisson--Gamma variants may be reported as model-level comparators, separately from the finite-Poisson algorithmic comparison.
 
+% ===== CUT (kept for reference): real-data accuracy table; uncomment and fill once results exist. =====
+\begin{comment}
 \begin{table}[t]
 \centering
 \caption{Goodness-of-fit on real count datasets. Poisson--Gamma variants, when included, are model-level comparators rather than direct algorithmic baselines; ``--'' marks values pending the final runs. \todo{Fill from the real-data experiments.}}
@@ -861,23 +894,27 @@ PBMC3k & Poisson--Gamma EM & -- & -- & -- \\
 \bottomrule
 \end{tabular}
 \end{table}
+\end{comment}
+% ===== end CUT =====
 
 \paragraph{Scalability and storage.}
 Figures~\ref{fig:runtime} and~\ref{fig:storage} quantify the central computational
-claim: at a fixed sketch size, both the memory footprint and the recovery cost are
-independent of the number of observations $n$. The sketch occupies a constant $2J$
-real scalars, while raw storage grows as $nd$; at $n=3\times10^5$ with $d=3$ this is a
-fixed $\approx 1.5\times10^3$ scalars against $\approx 9\times10^5$, more than two
-orders of magnitude smaller (Fig.~\ref{fig:storage}). The spectral fitting step --
-global SVD, similarity diagonalization, NNLS, simplex weights, and the L-BFGS
-refinement -- is flat in $n$ because it acts only on the sketch, whereas full-data EM
-scales linearly in $n$ per iteration. Consequently the sketch pipeline overtakes EM
-beyond $n\approx10^4$ and is roughly $35\times$ faster at $n=3\times10^5$
-(Fig.~\ref{fig:runtime}); the only data-dependent cost is the single streaming pass
-that builds the sketch.
+claim: at a fixed sketch size, both the storage and the recovery cost are independent of
+the number of observations $n$. Figure~\ref{fig:runtime} splits the runtime into four
+curves: full-data EM; the single streaming pass that builds the sketch (\emph{sketch
+construction}); the spectral fitting on the sketch (\emph{sketch fitting}: global SVD,
+similarity diagonalization, rate and weight recovery, and the L-BFGS refinement); and
+their sum (\emph{sketch total}). The fitting curve is essentially flat in $n$, since it
+acts only on the fixed-size sketch, whereas EM grows linearly in $n$ per iteration; the
+only data-dependent cost is the sketch construction. As a result the sketch pipeline
+overtakes EM beyond $n\approx10^4$ and is about an order of magnitude faster at the
+largest sample size we test ($\approx 35\times$ at $n=3\times10^5$).
+Figure~\ref{fig:storage} shows the matching storage picture: the sketch is a fixed $2J$
+real scalars while the raw data grows as $nd$, so at $n=3\times10^5$ with $d=3$ the
+sketch ($\approx\!1.5\times10^3$ scalars) is more than two orders of magnitude smaller
+than the raw data ($\approx\!9\times10^5$).
 
 \paragraph{Discussion and limitations.}
-\todo{Add the final accuracy findings (rate/weight/PGF error, Hellinger) once the synthetic and real tables are filled.}
 We expect PGF--JESPRIT to be most effective when the mixture has a moderate number of
 components and the rate vectors are sufficiently separated, so that the empirical PGF
 has a clear exponential structure and the joint subspace recovers coherent components.
@@ -904,15 +941,21 @@ and weights by simplex-constrained least squares, and finishes with a quasi-Newt
 refinement of the exact PGF loss using a closed-form analytic gradient. Because the
 sketch has a fixed size, the recovery cost and storage do not grow with the number of
 observations, which we confirm empirically against full-data EM.
-The final paper will complete the empirical study by separating algorithmic
+The final version will complete the empirical study by separating algorithmic
 comparisons under the finite product-Poisson mixture model from model-level
 comparisons involving alternative count-data models.
-\todo{Add final accuracy summary once the experiment tables are complete.}
 
 \bibliographystyle{ACM-Reference-Format}
 \bibliography{references}
 
+% ===== CUT (kept for reference): GenAI usage disclosure. Restore and adapt to the
+% target venue's policy if required (some workshops do not require it). =====
+\begin{comment}
 \section*{GenAI Usage Disclosure}
-\todo{For the final CIKM submission, replace this placeholder with the exact disclosure required by the ACM/CIKM policy. Example: ``The authors used generative AI tools for language editing and LaTeX drafting assistance. All scientific claims, experiments, code, and final text were verified by the authors.''}
+The authors used generative AI tools for language editing and LaTeX drafting
+assistance. All scientific claims, experiments, code, and final text were verified by
+the authors.
+\end{comment}
+% ===== end CUT =====
 
 \end{document}
